@@ -1,19 +1,48 @@
-check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\24BitMLS.txt',44100,'N');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\4BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\5BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\6BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\7BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\8BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\9BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\10BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\11BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\12BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\13BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\14BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\15BitMLS.txt',44100,'N', 'Y');
+check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\16BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\17BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\18BitMLS.txt',44100,'N', 'Y');
+check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\16BitMLSByMatlab.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\20BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\21BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\22BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\23BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\24BitMLS.txt',44100,'N', 'Y');
+check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\25BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\26BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\27BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\28BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\29BitMLS.txt',44100,'N', 'Y');
+%check_mls_from_file('C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\30BitMLS.txt',44100,'N', 'Y');
 
-function check_mls_from_file(filename, Fs, save_outputs)
-    % CHECK_MLS_FROM_FILE(filename, Fs, save_outputs)
+function check_mls_from_file(filename, Fs, save_outputs, fast_mode)
+    % CHECK_MLS_FROM_FILE(filename, Fs, save_outputs, fast_mode)
     % Verifies if a binary sequence from a .txt file is a valid MLS.
     % Fs = sampling frequency in Hz (for FFT plot in Hz).
     % save_outputs = 'Y' or 'N' (save plots and CSV or not).
-    %
-    % Example: check_mls_from_file('mymls.txt', 48000, 'Y');
+    % fast_mode = 'Y' or 'N' (fast cyclic shift check or full).
 
-    if nargin < 3
-        error('You must specify filename, Fs, and save_outputs (Y or N).');
+    if nargin < 4
+        error('You must specify filename, Fs, save_outputs (Y or N), and fast_mode (Y or N).');
     end
 
     if ~(save_outputs == 'Y' || save_outputs == 'N')
         error('save_outputs must be ''Y'' or ''N''.');
+    end
+
+    if ~(fast_mode == 'Y' || fast_mode == 'N')
+        error('fast_mode must be ''Y'' or ''N''.');
     end
 
     % --- Read Sequence ---
@@ -55,11 +84,15 @@ function check_mls_from_file(filename, Fs, save_outputs)
     % --- Map to {-1, +1} domain ---
     seq_mapped = 2*seq - 1;
 
-    % --- Check all cyclic shifts ---
+    % --- Cyclic Shift Check ---
     cyclic_pass = false;
     shift_amount = 0;
-    for k = 0:L-1
-        shifted_seq = circshift(seq_mapped, k);
+    h = waitbar(0,'Starting MLS validation...');
+
+    if fast_mode == 'Y'
+        % --- FAST MODE ---
+        waitbar(0,h,'Fast mode: checking shift = 0...');
+        shifted_seq = seq_mapped; % No shift
         acorr = ifft(abs(fft(shifted_seq)).^2);
         acorr = real(acorr);
 
@@ -67,19 +100,61 @@ function check_mls_from_file(filename, Fs, save_outputs)
         peak_ok = abs(acorr(1) - L) < tolerance;
         sidelobes_ok = all(abs(acorr(2:end) + 1) < tolerance);
 
+        waitbar(1,h,'Fast check complete.');
+        pause(0.2);
+        if isvalid(h)
+            close(h);
+        end
+
         if peak_ok && sidelobes_ok
             cyclic_pass = true;
-            shift_amount = k;
-            break;
+            shift_amount = 0;
+        else
+            cyclic_pass = false;
+            shift_amount = NaN;
+        end
+
+    else
+        % --- FULL MODE ---
+        for k = 0:L-1
+            shifted_seq = circshift(seq_mapped, k);
+            acorr = ifft(abs(fft(shifted_seq)).^2);
+            acorr = real(acorr);
+
+            tolerance = 1e-6;
+            peak_ok = abs(acorr(1) - L) < tolerance;
+            sidelobes_ok = all(abs(acorr(2:end) + 1) < tolerance);
+
+            if peak_ok && sidelobes_ok
+                cyclic_pass = true;
+                shift_amount = k;
+                break;
+            end
+
+            % Update progress bar
+            perc = (k/(L-1))*100;
+            waitbar(k/(L-1), h, sprintf('Checking cyclic shifts... %.2f%%', perc));
+        end
+        waitbar(1,h,'Full check complete.');
+        pause(0.2);
+        if isvalid(h)
+            close(h);
         end
     end
 
-    % --- Report results ---
+    % --- Report Results ---
     if cyclic_pass
-        disp('✅ Sequence is a VALID MLS (after cyclic shift detection).');
-        fprintf('Detected cyclic shift of %d samples.\n', shift_amount);
+        disp('✅ Sequence is a VALID MLS.');
+        if ~isnan(shift_amount)
+            fprintf('Detected cyclic shift of %d samples.\n', shift_amount);
+        else
+            fprintf('Fast mode: assumed no cyclic shift.\n');
+        end
     else
-        disp('❌ Sequence FAILED MLS check even after trying all cyclic shifts.');
+        disp('❌ Sequence FAILED MLS check.');
+        if fast_mode == 'Y'
+            disp('⚠️  (Fast mode was enabled. Maybe try again with full cyclic check)');
+        end
     end
 
     % --- Prepare Summary Values ---
@@ -91,19 +166,19 @@ function check_mls_from_file(filename, Fs, save_outputs)
     fprintf('----------------------------------------------------\n');
     fprintf('Length                : %d samples\n', L);
     fprintf('Register size (n)      : %d bits\n', n);
-    fprintf('Detected cyclic shift : %d samples\n', shift_amount);
+    fprintf('Detected cyclic shift : %s\n', num2str(shift_amount));
     fprintf('Autocorrelation peak  : %.6f (ideal = %d)\n', peak_value, L);
     fprintf('Max sidelobe deviation: %.6f\n', max_sidelobe_deviation);
     fprintf('----------------------------------------------------\n\n');
 
     % --- Prepare for Saving ---
-    [filepath, name_only, ~] = fileparts(filename);
+    [filepath, name_only, ~] = fileparts(filename); % Now only using name_only
 
     if save_outputs == 'Y'
         % --- Export summary to CSV ---
         summary_table = table(...
-            string(filename), L, n, shift_amount, peak_value, max_sidelobe_deviation, ...
-            'VariableNames', {'Filename','Length','RegisterSize','CyclicShift','PeakValue','MaxSidelobeDeviation'} ...
+            string(name_only), L, n, shift_amount, peak_value, max_sidelobe_deviation, fast_mode, ...
+            'VariableNames', {'Filename','Length','RegisterSize','CyclicShift','PeakValue','MaxSidelobeDeviation','FastMode'} ...
         );
         csv_filename = fullfile(filepath, sprintf('%s_summary.csv', name_only));
         writetable(summary_table, csv_filename);
@@ -118,21 +193,21 @@ function check_mls_from_file(filename, Fs, save_outputs)
     % 1. MLS Sequence
     subplot(2,2,1);
     stem(seq, 'Marker','none');
-    title('MLS Sequence (Time Domain)');
     xlabel('Sample');
     ylabel('Amplitude');
     grid on;
     xlim([0 L]);
+    title('MLS Sequence');
 
     % 2. Autocorrelation
     subplot(2,2,2);
     lags = 0:L-1;
     stem(lags, acorr, 'Marker','none');
-    title('Autocorrelation');
     xlabel('Lag');
     ylabel('Autocorr');
     grid on;
     xlim([0 L-1]);
+    title('Autocorrelation');
 
     % 3. FFT Magnitude Spectrum
     subplot(2,2,3);
@@ -140,27 +215,28 @@ function check_mls_from_file(filename, Fs, save_outputs)
     f_Hz = (0:Nfft-1)*(Fs/Nfft); % Frequency axis in Hz
     spectrum = abs(fft(seq_mapped, Nfft));
     plot(f_Hz(1:Nfft/2), spectrum(1:Nfft/2));
-    title('Magnitude Spectrum');
     xlabel('Frequency (Hz)');
     ylabel('Magnitude');
     grid on;
     xlim([0 Fs/2]);
-    set(gca, 'XTickMode', 'auto', 'XMinorTick', 'on');
+    title('Magnitude Spectrum');
     ax = gca;
-    ax.XAxis.Exponent = 0; % Disable scientific notation
+    ax.XAxis.Exponent = 0;
 
     % 4. Power Spectral Density
     subplot(2,2,4);
     [Pxx,F] = pwelch(seq_mapped,[],[],[],Fs,'twosided');
     plot(F,10*log10(Pxx));
-    title('Power Spectral Density (PSD)');
     xlabel('Frequency (Hz)');
     ylabel('Power/Frequency (dB/Hz)');
     grid on;
     xlim([0 Fs/2]);
-    set(gca, 'XTickMode', 'auto', 'XMinorTick', 'on');
+    title('Power Spectral Density (PSD)');
     ax = gca;
-    ax.XAxis.Exponent = 0; % Disable scientific notation
+    ax.XAxis.Exponent = 0;
+
+    % --- Set overall title (ONLY filename, no full path) ---
+    sgtitle(sprintf('MLS Analysis: %s', name_only),'Interpreter','none');
 
     % --- Save plots if requested ---
     if save_outputs == 'Y'
@@ -173,3 +249,4 @@ function check_mls_from_file(filename, Fs, save_outputs)
         fprintf('Plots not saved (save_outputs = ''N'').\n\n');
     end
 end
+

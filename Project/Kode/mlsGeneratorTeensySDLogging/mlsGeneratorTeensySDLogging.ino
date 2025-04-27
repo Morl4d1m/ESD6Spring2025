@@ -50,7 +50,7 @@ void setup() {
   if (!SD.begin(chipSelect)) {                    // <-- Added for SD logging
     Serial.println("SD card initialization failed!"); 
   } else {
-    logFile = SD.open("log.txt", FILE_WRITE);
+    logFile = SD.open("BitMLS.txt", FILE_WRITE);
     if (logFile) {
       logFile.println("Starting new log session...");
       logFile.flush();

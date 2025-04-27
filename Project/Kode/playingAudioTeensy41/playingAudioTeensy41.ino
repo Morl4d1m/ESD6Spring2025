@@ -39,7 +39,7 @@ uint32_t LFSRBits = 21;           // Change this between 2 and 32
 const unsigned long delayUS = 1;  // Delay in microseconds between bits
 uint32_t LFSR;
 uint32_t mask;
-float sineSweepTime = 1; // Practically decides how fast the frequency is changed in the sine sweep, by saying deltaF/time
+float sineSweepTime = 1;  // Practically decides how fast the frequency is changed in the sine sweep, by saying deltaF/time
 
 void setup() {
   AudioMemory(100);               // Haven't quite figures out yet
@@ -152,22 +152,23 @@ void playMLSBit(bool bit, int samplesPerBit = 1, int amplitude = 28000) {
   for (int i = 0; i < samplesPerBit; i++) {
     buffer[bufferIndex++] = value;
 
-    if (bufferIndex == 128) {
-      memcpy(MLSSignal.getBuffer(), buffer, sizeof(buffer));
-      MLSSignal.playBuffer();
-      bufferIndex = 0;
+    if (bufferIndex == 128) {                                 // Buffer set to 128 bits, conforming to I2S standards
+      memcpy(MLSSignal.getBuffer(), buffer, sizeof(buffer));  // Copies buffer data to the AudioPlayQueue, enabling the Teensy to play the MLS
+      MLSSignal.playBuffer();                                 // Proprietary play function for the AudioPlayQueue
+      bufferIndex = 0;                                        // Resets the bufferindex, so a new sequence can be initialized
     }
   }
 }
 
 void generateMLS() {
-  if (LFSRBits < 2 || LFSRBits > 32) {
+  if (LFSRBits < 2 || LFSRBits > 32) {  // Double check to ensure 32 bit values are the largest used
     Serial.println("LFSRBits must be between 2 and 32.");
-    while (1);
+    while (1)
+      ;
   }
 
-  mask = (1UL << LFSRBits) - 1;
-  LFSR = mask;  // Start with all ones
+  mask = (1UL << LFSRBits) - 1;            // Creates a seed containing all 1's
+  LFSR = mask;                             // Start with all ones
   uint32_t taps = feedbackTaps(LFSRBits);  // Correct taps for left shift
 
   Serial.print("Generating MLS with ");
@@ -177,12 +178,12 @@ void generateMLS() {
   Serial.print((1UL << LFSRBits) - 1);
   Serial.println(" bits long.");
 
-  uint32_t startMLSTime = micros();
-  uint32_t MLSLength = (1UL << LFSRBits) - 1;
+  uint32_t startMLSTime = micros();            // Timer start to monitor execution time
+  uint32_t MLSLength = (1UL << LFSRBits) - 1;  // Sets the length to match 2^N-1
 
   for (uint32_t i = 0; i < MLSLength; i++) {
-    bool feedback = __builtin_parity(LFSR & taps);  // Parity of taps
-    // Output the *feedback* bit, NOT the LFSR MSB
+    bool feedback = __builtin_parity(LFSR & taps);  // Parity of taps using builtin parity to speed up the process
+    // Output the feedback bit, NOT the LFSR MSB
     Serial.print(feedback ? 1 : 0);
     playMLSBit(feedback);
 
@@ -193,9 +194,9 @@ void generateMLS() {
     LFSR &= mask;  // Mask to keep LFSRBits width
   }
 
-  uint32_t endMLSTime = micros();
+  uint32_t endMLSTime = micros();  // Timer end to monitor execution time
   Serial.println("\nMLS generation complete.");
   Serial.print("It has taken ");
-  Serial.print(endMLSTime - startMLSTime);
+  Serial.print(endMLSTime - startMLSTime);  // Total execution time given in serial monitor
   Serial.println(" microseconds to calculate and print.");
 }
