@@ -4,11 +4,11 @@ const unsigned long delayUS = 1;  // Delay in microseconds between bits
 uint32_t LFSR;
 uint32_t mask;
 
-// Feedback tap map for various LFSR lengths (primitive polynomials)
+// Feedback tap map for various left-shifting LFSR lengths (primitive polynomials) with correct taps
 uint32_t feedbackTaps(uint8_t bits) {
   switch (bits) {
     case 2: return (1 << 1) | (1 << 0);                             // x^2 + x + 1
-    case 3: return (1 << 2) | (1 << 1);                             // x^3 + x^2 + 1
+    case 3: return (1 << 2) | (1 << 0);                             // x^3 + x + 1
     case 4: return (1 << 3) | (1 << 0);                             // x^4 + x + 1
     case 5: return (1 << 4) | (1 << 2);                             // x^5 + x^3 + 1
     case 6: return (1 << 5) | (1 << 4);                             // x^6 + x^5 + 1
@@ -17,21 +17,21 @@ uint32_t feedbackTaps(uint8_t bits) {
     case 9: return (1 << 8) | (1 << 4);                             // x^9 + x^5 + 1
     case 10: return (1 << 9) | (1 << 6);                            // x^10 + x^7 + 1
     case 11: return (1 << 10) | (1 << 8);                           // x^11 + x^9 + 1
-    case 12: return (1 << 11) | (1 << 10) | (1 << 4) | (1 << 1);    // x^12 + x^11 + x^5 + x^2 + 1
+    case 12: return (1 << 11) | (1 << 5) | (1 << 3) | (1 << 0);     // x^12 + x^6 + x^4 + x + 1
     case 13: return (1 << 12) | (1 << 3) | (1 << 2) | (1 << 0);     // x^13 + x^4 + x^3 + x + 1
-    case 14: return (1 << 13) | (1 << 11) | (1 << 9) | (1 << 8);    // x^14 + x^12 + x^10 + x^9 + 1
+    case 14: return (1 << 13) | (1 << 12) | (1 << 11) | (1 << 1);   // x^14 + x^13 + x^3 + x 1
     case 15: return (1 << 14) | (1 << 13);                          // x^15 + x^14 + 1
-    case 16: return 0b00000000000000001101000000001000	;  // x^16 + x^14 + x^13 + x^11 + 1////////////
+    case 16: return (1 << 15) | (1 << 13) | (1 << 12) | (1 << 10);  // x^16 + x^14 + x^13 + x^11 + 1
     case 17: return (1 << 16) | (1 << 13);                          // x^17 + x^14 + 1
     case 18: return (1 << 17) | (1 << 10);                          // x^18 + x^11 + 1
-    case 19: return (1 << 18) | (1 << 5);                           // x^19 + x^6 + 1
+    case 19: return (1 << 18) | (1 << 17) | (1 << 16) | (1 << 13);  // x^19 + x^18 + x^16 + x^14 + 1
     case 20: return (1 << 19) | (1 << 16);                          // x^20 + x^17 + 1
     case 21: return (1 << 20) | (1 << 18);                          // x^21 + x^19 + 1
     case 22: return (1 << 21) | (1 << 20);                          // x^22 + x^21 + 1
     case 23: return (1 << 22) | (1 << 17);                          // x^23 + x^18 + 1
     case 24: return (1 << 23) | (1 << 22) | (1 << 21) | (1 << 16);  // x^24 + x^23 + x^22 + x^17 + 1
-    case 25: return (1 << 24) | (1 << 22);                          // x^25 + x^23 + 1
-    case 26: return (1 << 25) | (1 << 6) | (1 << 2) | (1 << 1);     // x^26 + x^7 + x^3 + x^2 + 1
+    case 25: return (1 << 24) | (1 << 21);                          // x^25 + x^22 + 1
+    case 26: return (1 << 25) | (1 << 5) | (1 << 1) | (1 << 0);     // x^26 + x^6 + x^2 + x 1
     case 27: return (1 << 26) | (1 << 4) | (1 << 1) | (1 << 0);     // x^27 + x^5 + x^2 + x + 1
     case 28: return (1 << 27) | (1 << 24);                          // x^28 + x^25 + 1
     case 29: return (1 << 28) | (1 << 26);                          // x^29 + x^27 + 1

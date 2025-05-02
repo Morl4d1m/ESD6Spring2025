@@ -2,8 +2,8 @@
 N = 16;            % Length of MLS (number of bits, this will produce a sequence of 2^N-1)
 fs = 44100;        % Sampling frequency (samples per second)
 
-
-file_path= 'C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\16bitMLS.txt'
+%file_path= 'C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\Faulty MLSs (1 bit flipped)\16bitMLSFaulty.txt'
+file_path= 'C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\MLSGeneratedByTeensy\16bitMLS.txt'
 fileID = fopen(file_path, 'r');
 % Check if the file opened successfully
 if fileID == -1
