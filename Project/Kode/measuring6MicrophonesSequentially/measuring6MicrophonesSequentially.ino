@@ -25,6 +25,10 @@ AudioConnection patchCord5(i2sHex1, 4, fft1024CH5, 0);
 AudioConnection patchCord6(i2sHex1, 5, fft1024CH6, 0);
 */
 
+#define CH12Pin 10
+#define CH34Pin 11
+#define CH56Pin 12
+
 const float binWidth = 44100.0 / 1024.0;  // ≈ 43.07 Hz bandwidth of bins
 const uint8_t numberOfBins = 30;
 float fftCH1Bins[30];
@@ -46,6 +50,9 @@ int totalTime = 0;
 void setup() {
   Serial.begin(115200);
   Serial.println("Setup init");
+  pinMode(CH12Pin, OUTPUT);
+  pinMode(CH34Pin, OUTPUT);
+  pinMode(CH56Pin, OUTPUT);
   AudioMemory(120);
   fft1024CH1.windowFunction(AudioWindowHanning1024);
   fft1024CH2.windowFunction(AudioWindowHanning1024);
@@ -62,6 +69,8 @@ void loop() {
   startTimeTotal = micros();
   startTimePair = micros();
   AudioNoInterrupts();
+  digitalWrite(CH12Pin, HIGH);
+  delay(5000);
   if (patchCord1) {
     delete patchCord1;
     patchCord1 = nullptr;
@@ -161,8 +170,8 @@ void loop() {
     Serial.print(": ");
     Serial.print(fftCH1Bins[q], 6);
     Serial.print("  ");
-}
-    Serial.println();
+  }
+  Serial.println();
 
   for (int q = 0; q < numberOfBins; q++) {
     float startFreq = q * binWidth;
@@ -178,6 +187,9 @@ void loop() {
 
   startTimePair = micros();
   AudioNoInterrupts();
+  digitalWrite(CH12Pin, LOW);
+  digitalWrite(CH34Pin, HIGH);
+  delay(5000);
   if (patchCord3) {
     delete patchCord3;
     patchCord3 = nullptr;
@@ -266,7 +278,7 @@ void loop() {
   Serial.print("Measurement on mic 3/4 done in ");
   Serial.print(pairTime);
   Serial.println(" microseconds");
-  
+
 
   for (int q = 0; q < numberOfBins; q++) {
     float startFreq = q * binWidth;
@@ -278,8 +290,8 @@ void loop() {
     Serial.print(": ");
     Serial.print(fftCH3Bins[q], 6);
     Serial.print("  ");
-}
-    Serial.println();
+  }
+  Serial.println();
 
   for (int q = 0; q < numberOfBins; q++) {
     float startFreq = q * binWidth;
@@ -294,6 +306,9 @@ void loop() {
   }
   startTimePair = micros();
   AudioNoInterrupts();
+  digitalWrite(CH34Pin, LOW);
+  digitalWrite(CH56Pin, HIGH);
+  delay(5000);
   if (patchCord5) {
     delete patchCord5;
     patchCord5 = nullptr;
@@ -394,8 +409,8 @@ void loop() {
     Serial.print(": ");
     Serial.print(fftCH5Bins[q], 6);
     Serial.print("  ");
-}
-    Serial.println();
+  }
+  Serial.println();
 
   for (int q = 0; q < numberOfBins; q++) {
     float startFreq = q * binWidth;
@@ -408,6 +423,7 @@ void loop() {
     Serial.print(fftCH6Bins[q], 6);
     Serial.print("  ");
   }
+  digitalWrite(CH56Pin, LOW);
   Serial.println();
   endTimeTotal = micros();
   totalTime = endTimeTotal - startTimeTotal;

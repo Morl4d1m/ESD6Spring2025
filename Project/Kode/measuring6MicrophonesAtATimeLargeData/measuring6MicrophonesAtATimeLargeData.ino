@@ -161,8 +161,8 @@ void loop() {
     Serial.print(": ");
     Serial.print(fftCH1Bins[q], 6);
     Serial.print("  ");
-}
-    Serial.println();
+  }
+  Serial.println();
 
   for (int q = 0; q < numberOfBins; q++) {
     float startFreq = q * binWidth;
@@ -175,7 +175,7 @@ void loop() {
     Serial.print(fftCH2Bins[q], 6);
     Serial.print("  ");
   }
-
+  delayMicroseconds(130);
   startTimePair = micros();
   AudioNoInterrupts();
   if (patchCord3) {
@@ -266,7 +266,7 @@ void loop() {
   Serial.print("Measurement on mic 3/4 done in ");
   Serial.print(pairTime);
   Serial.println(" microseconds");
-  
+
 
   for (int q = 0; q < numberOfBins; q++) {
     float startFreq = q * binWidth;
@@ -278,8 +278,8 @@ void loop() {
     Serial.print(": ");
     Serial.print(fftCH3Bins[q], 6);
     Serial.print("  ");
-}
-    Serial.println();
+  }
+  Serial.println();
 
   for (int q = 0; q < numberOfBins; q++) {
     float startFreq = q * binWidth;
@@ -305,6 +305,7 @@ void loop() {
   patchCord5 = new AudioConnection(i2sHex1, 0, fft1024CH5, 0);
   patchCord6 = new AudioConnection(i2sHex1, 1, fft1024CH6, 0);
   AudioInterrupts();
+  delayMicroseconds(130);
 
   if (fft1024CH5.available()) {
     Serial.print("Channel 5 ");
@@ -394,8 +395,8 @@ void loop() {
     Serial.print(": ");
     Serial.print(fftCH5Bins[q], 6);
     Serial.print("  ");
-}
-    Serial.println();
+  }
+  Serial.println();
 
   for (int q = 0; q < numberOfBins; q++) {
     float startFreq = q * binWidth;
@@ -409,6 +410,7 @@ void loop() {
     Serial.print("  ");
   }
   Serial.println();
+  delayMicroseconds(130);
   endTimeTotal = micros();
   totalTime = endTimeTotal - startTimeTotal;
   Serial.print("Measurement in total done in ");
