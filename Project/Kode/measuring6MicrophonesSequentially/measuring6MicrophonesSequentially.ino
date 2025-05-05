@@ -70,7 +70,7 @@ void loop() {
   startTimePair = micros();
   AudioNoInterrupts();
   digitalWrite(CH12Pin, HIGH);
-  delay(5000);
+  delay(1000);
   if (patchCord1) {
     delete patchCord1;
     patchCord1 = nullptr;
@@ -188,8 +188,9 @@ void loop() {
   startTimePair = micros();
   AudioNoInterrupts();
   digitalWrite(CH12Pin, LOW);
+  delay(1000);
   digitalWrite(CH34Pin, HIGH);
-  delay(5000);
+  delay(1000);
   if (patchCord3) {
     delete patchCord3;
     patchCord3 = nullptr;
@@ -307,8 +308,9 @@ void loop() {
   startTimePair = micros();
   AudioNoInterrupts();
   digitalWrite(CH34Pin, LOW);
+  delay(1000);
   digitalWrite(CH56Pin, HIGH);
-  delay(5000);
+  delay(1000);
   if (patchCord5) {
     delete patchCord5;
     patchCord5 = nullptr;
@@ -424,6 +426,7 @@ void loop() {
     Serial.print("  ");
   }
   digitalWrite(CH56Pin, LOW);
+  delay(1000);
   Serial.println();
   endTimeTotal = micros();
   totalTime = endTimeTotal - startTimeTotal;

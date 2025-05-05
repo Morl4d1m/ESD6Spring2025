@@ -12,10 +12,12 @@ const float binWidth = 44100.0 / 1024.0;  // ≈ 43.07 Hz bandwidth of bins
 void setup() {
   Serial.begin(115200);
   AudioMemory(12);
-  fft1024.windowFunction(AudioWindowHanning1024);
+  fft1024.windowFunction(AudioWindowRectangular1024);
+  pinMode(13, OUTPUT);
 }
 
 void loop() {
+  digitalWrite(13,HIGH);
   if (fft1024.available()) {
     for (int i = 0; i < 40; i++) {
       float startFreq = i * binWidth;
@@ -31,4 +33,5 @@ void loop() {
     }
     Serial.println();
   }
+  digitalWrite(13,LOW);
 }

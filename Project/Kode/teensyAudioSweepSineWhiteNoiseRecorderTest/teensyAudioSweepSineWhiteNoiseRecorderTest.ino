@@ -85,10 +85,10 @@ void loop() {
   //recordPhaseShift();
   delay(1000);
 
-  recordWhiteNoise();
+ // recordWhiteNoise();
   delay(1000);
 
-  //recordSineSweep();
+  recordSineSweep();
   delay(1000);
 
   Serial.println("All recordings done. Halting.");
