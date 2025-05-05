@@ -61,7 +61,7 @@ uint16_t TOTAL_SAMPLES = 441000;
 
 void setup() {
   Serial.begin(115200);
-  AudioMemory(250);
+  AudioMemory(500);
 
   // SD setup
   if (!SD.begin(chipSelect)) {
@@ -78,7 +78,7 @@ void setup() {
   mixer.gain(1, 0.3);  // noise
   mixer.gain(2, 0.3);  // sweep
 
-  //recordQueue.begin();
+  recordQueue.begin();
   mic1Queue.begin();
   delay(1000);  // Ensure system stabilizes
 }
@@ -108,13 +108,17 @@ void recordSine() {
   sineWave.amplitude(0.3);                // Sets the gain/amplitude of the sinusoid
   for (int f = 20; f <= 1220; f += 50) {  // Increments frequency by 50 Hz
     sineWave.frequency(f);                // Sets the current frequency
-    char filename[20];
-    snprintf(filename, sizeof(filename), "sine%dMixer.csv", f);
-    mixerFile = SD.open(filename, FILE_WRITE);  // Creates file on the SD card
-    micFile = SD.open(filename, FILE_WRITE);    // Creates file on the SD card
-    recordBothToFile(mixerFile, micFile);       // Saves the current audio to SD
-    mixerFile.close();                          // Closes the file on SD
-    micFile.close();                            // Closes the file on SD
+    char filenameMixer[20];
+    char filenameMic[20];
+    snprintf(filenameMixer, sizeof(filenameMixer), "sine%dMixer.csv", f);
+    snprintf(filenameMic, sizeof(filenameMic), "sine%dMic.csv", f);
+    removeIfExists(filenameMixer);                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+    removeIfExists(filenameMic);                        // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+    mixerFile = SD.open(filenameMixer, FILE_WRITE);     // Creates file on the SD card
+    micFile = SD.open(filenameMic, FILE_WRITE);         // Creates file on the SD card
+    recordBothToFile(mixerFile, micFile, SAMPLE_RATE);  // Saves the current audio to SD
+    mixerFile.close();                                  // Closes the file on SD
+    micFile.close();                                    // Closes the file on SD
   }
   sineWave.amplitude(0);  // Turns off the sinusoid
   Serial.println("Sine done");
@@ -126,13 +130,17 @@ void recordPhaseShift() {
   sineWave.frequency(1000);                         // Sets the frequency
   for (int phase = 0; phase <= 360; phase += 90) {  // Increments phase shift by 90 degrees
     sineWave.phase(0);                              // Initializes phase at 0 degrees
-    char filename[20];
-    snprintf(filename, sizeof(filename), "sineShifted%dMixer.csv", phase);
-    mixerFile = SD.open(filename, FILE_WRITE);  // Creates file on the SD card
-    micFile = SD.open(filename, FILE_WRITE);    // Creates file on the SD card
-    recordBothToFile(mixerFile, micFile);       // Saves the current audio to SD
-    mixerFile.close();                          // Closes the file on SD
-    micFile.close();                            // Closes the file on SD
+    char filenameMixer[20];
+    char filenameMic[20];
+    snprintf(filenameMixer, sizeof(filenameMixer), "sineShifted%dMixer.csv", phase);
+    snprintf(filenameMic, sizeof(filenameMic), "sineShifted%dMic.csv", phase);
+    removeIfExists(filenameMixer);                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+    removeIfExists(filenameMic);                        // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+    mixerFile = SD.open(filenameMixer, FILE_WRITE);     // Creates file on the SD card
+    micFile = SD.open(filenameMic, FILE_WRITE);         // Creates file on the SD card
+    recordBothToFile(mixerFile, micFile, SAMPLE_RATE);  // Saves the current audio to SD
+    mixerFile.close();                                  // Closes the file on SD
+    micFile.close();                                    // Closes the file on SD
   }
   sineWave.amplitude(0);  // Turns off the sinusoid
   Serial.println("Phaseshift done");
@@ -141,9 +149,11 @@ void recordPhaseShift() {
 void recordWhiteNoise() {
   Serial.println("Recording white noise");
   whiteNoise.amplitude(0.3);                               // Sets the amplitude for white noise signal
+  removeIfExists("whiteNoiseMixer.csv");                   // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+  removeIfExists("whiteNoiseMic.csv");                     // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
   mixerFile = SD.open("whiteNoiseMixer.csv", FILE_WRITE);  // Creates file on the SD card
   micFile = SD.open("whiteNoiseMic.csv", FILE_WRITE);      // Creates file on the SD card
-  recordBothToFile(mixerFile, micFile);                    // Saves the current audio to SD
+  recordBothToFile(mixerFile, micFile,SAMPLE_RATE);                    // Saves the current audio to SD
   mixerFile.close();                                       // Closes the file on SD
   micFile.close();                                         // Closes the file on SD
   whiteNoise.amplitude(0);                                 // Turns off the white noise
@@ -154,23 +164,28 @@ void recordSineSweep() {
   Serial.println("Recording sine sweep");
   //TOTAL_SAMPLES = TOTAL_SAMPLES * 10;
   //Serial.println("50");
+  removeIfExists("sweepMixer.csv");                   // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+  removeIfExists("sweepMic.csv");                     // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
   mixerFile = SD.open("sweepMixer.csv", FILE_WRITE);  // Creates a file on the SD card
   micFile = SD.open("sweepMic.csv", FILE_WRITE);      // Creates a file on the SD card
-  sineSweep.play(1, 100, 1220, sineSweepTime);        // Initializes sine sweep from 20Hz to 1220Hz over 1 second
-  while (sineSweep.isPlaying() == 1) {
-    recordBothToFile(mixerFile, micFile);  // Saves the current audio to SD
-  }
+  sineSweep.play(1, 20, 1220, sineSweepTime);         // Initializes sine sweep from 20Hz to 1220Hz over 1 second
+  // Calculate total samples based on sweep duration and sampling rate
+  uint32_t sweepSamples = sineSweepTime * SAMPLE_RATE;
+  recordBothToFile(mixerFile, micFile, sweepSamples);
+
   mixerFile.close();  // Closes the file on SD
   micFile.close();    // Closes the file on SD
   delay(1000);
   Serial.println("Sine sweep done.");
 }
 
-void recordBothToFile(File& mixerFile, File& micFile) {
-  int samplesRecorded = 0;
 
-  while (samplesRecorded < TOTAL_SAMPLES) {
-    // Read from mixer
+void recordBothToFile(File& mixerFile, File& micFile, uint32_t totalSamples) {
+  uint32_t samplesRecorded = 0;
+  while (samplesRecorded < totalSamples) {
+    bool wroteBlock = false;
+
+    // Mixer
     if (recordQueue.available()) {
       int16_t* buf = recordQueue.readBuffer();
       for (int i = 0; i < BLOCK_SIZE; i++) {
@@ -179,9 +194,10 @@ void recordBothToFile(File& mixerFile, File& micFile) {
         mixerFile.print(i < BLOCK_SIZE - 1 ? "," : "\n");
       }
       recordQueue.freeBuffer();
+      wroteBlock = true;
     }
 
-    // Read from mic
+    // Mic
     if (mic1Queue.available()) {
       int16_t* buf = mic1Queue.readBuffer();
       for (int i = 0; i < BLOCK_SIZE; i++) {
@@ -190,7 +206,20 @@ void recordBothToFile(File& mixerFile, File& micFile) {
         micFile.print(i < BLOCK_SIZE - 1 ? "," : "\n");
       }
       mic1Queue.freeBuffer();
+      wroteBlock = true;
+    }
+
+    if (wroteBlock) {
       samplesRecorded += BLOCK_SIZE;
     }
+  }
+}
+
+
+void removeIfExists(const char* filename) {
+  if (SD.exists(filename)) {
+    SD.remove(filename);
+    Serial.print("Deleted previous version of: ");
+    Serial.println(filename);
   }
 }
