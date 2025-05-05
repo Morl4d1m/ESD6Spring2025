@@ -45,6 +45,7 @@ AudioConnection patchCord8(i2sMic1, 0, mic1Queue, 0);
 const int chipSelect = BUILTIN_SDCARD;
 File mixerFile;
 File micFile;
+File combinedFile;
 
 // Global variables
 uint16_t count = 1;
@@ -162,20 +163,21 @@ void recordWhiteNoise() {
 
 void recordSineSweep() {
   Serial.println("Recording sine sweep");
+  uint32_t sweepSamples = sineSweepTime * SAMPLE_RATE;
   //TOTAL_SAMPLES = TOTAL_SAMPLES * 10;
   //Serial.println("50");
   removeIfExists("sweepMixer.csv");                   // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
   removeIfExists("sweepMic.csv");                     // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
-  mixerFile = SD.open("sweepMixer.csv", FILE_WRITE);  // Creates a file on the SD card
-  micFile = SD.open("sweepMic.csv", FILE_WRITE);      // Creates a file on the SD card
+ removeIfExists("sweepCombined.csv");                     // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+  //mixerFile = SD.open("sweepMixer.csv", FILE_WRITE);  // Creates a file on the SD card
+  //micFile = SD.open("sweepMic.csv", FILE_WRITE);      // Creates a file on the SD card
+  combinedFile=SD.open("sweepCombined.csv",FILE_WRITE);
   sineSweep.play(1, 20, 1220, sineSweepTime);         // Initializes sine sweep from 20Hz to 1220Hz over 1 second
   // Calculate total samples based on sweep duration and sampling rate
-  uint32_t sweepSamples = sineSweepTime * SAMPLE_RATE;
-  recordBothToFile(mixerFile, micFile, sweepSamples);
-
-  mixerFile.close();  // Closes the file on SD
-  micFile.close();    // Closes the file on SD
-  delay(1000);
+  recordBothToFileSingleFile(combinedFile, sweepSamples);
+  //mixerFile.close();  // Closes the file on SD
+  //micFile.close();    // Closes the file on SD
+  combinedFile.close();
   Serial.println("Sine sweep done.");
 }
 
@@ -215,6 +217,29 @@ void recordBothToFile(File& mixerFile, File& micFile, uint32_t totalSamples) {
   }
 }
 
+void recordBothToFileSingleFile(File& file, uint32_t totalSamples) {
+  uint32_t samplesRecorded = 0;
+
+  while (samplesRecorded < totalSamples) {
+    if (recordQueue.available() && mic1Queue.available()) {
+      int16_t* bufMixer = recordQueue.readBuffer();
+      int16_t* bufMic = mic1Queue.readBuffer();
+
+      for (int i = 0; i < BLOCK_SIZE; i++) {
+        float sMixer = (float)bufMixer[i] / 32768.0f;
+        float sMic = (float)bufMic[i] / 32768.0f;
+        file.print(sMixer, 6);
+        file.print(",");
+        file.print(sMic, 6);
+        file.print("\n");
+      }
+
+      recordQueue.freeBuffer();
+      mic1Queue.freeBuffer();
+      samplesRecorded += BLOCK_SIZE;
+    }
+  }
+}
 
 void removeIfExists(const char* filename) {
   if (SD.exists(filename)) {
