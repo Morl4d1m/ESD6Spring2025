@@ -4,7 +4,7 @@
 
 % === User parameters ===
 fs = 44100;  % Sampling rate (Hz)
-output_dir = "C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\impulseResponses\";
+output_dir = "C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\impulseResponses\1Mic\";
 
 % === Signal file paths ===
 file_paths = {
@@ -67,7 +67,7 @@ for i = 1:length(file_paths)
     %grid on;
 
     % === Plot Magnitude Frequency Response ===
-    H_dB = 20 * log10(abs(H(1:Nfft / 2)));
+    H_dB = -20 * log10(abs(H(1:Nfft / 2)));
 
     %subplot(2, 1, 2);
     plot(f, H_dB, 'b');

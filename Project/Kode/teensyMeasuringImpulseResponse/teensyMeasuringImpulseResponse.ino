@@ -110,7 +110,7 @@ void recordSine() {
   for (int f = 20; f <= 1220; f += 50) {  // Increments frequency by 50 Hz
     sineWave.frequency(f);                // Sets the current frequency
     char filenameCombined[30];
-    snprintf(filenameCombined, sizeof(filenameCombined), "sine%dCombined.csv", f);
+    snprintf(filenameCombined, sizeof(filenameCombined), "sine%dCombinedMic8.csv", f);
     Serial.println(filenameCombined);
     removeIfExists(filenameCombined);                   // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
     combinedFile = SD.open(filenameCombined,FILE_WRITE);           // Creates file on the SD card
@@ -131,8 +131,8 @@ void recordPhaseShift() {
   sineWave.frequency(1000);                         // Sets the frequency
   for (int phase = 0; phase <= 360; phase += 90) {  // Increments phase shift by 90 degrees
     sineWave.phase(0);                              // Initializes phase at 0 degrees
-    char filenameCombined[30];
-    snprintf(filenameCombined, sizeof(filenameCombined), "sineShifted%dCombined.csv", phase);
+    char filenameCombined[40];
+    snprintf(filenameCombined, sizeof(filenameCombined), "sineShifted%dCombinedMic8.csv", phase);
     Serial.println(filenameCombined);
     removeIfExists(filenameCombined);                   // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
     combinedFile = SD.open(filenameCombined,FILE_WRITE);           // Creates file on the SD card
@@ -150,8 +150,8 @@ if (!combinedFile) {
 void recordWhiteNoise() {
   Serial.println("Recording white noise");
   whiteNoise.amplitude(0.3);                          // Sets the amplitude for white noise signal
-  removeIfExists("whiteNoiseCombined.csv");           // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
-  combinedFile = SD.open("whiteNoiseCombined.csv",FILE_WRITE);   // Creates file on the SD 
+  removeIfExists("whiteNoiseCombinedMic8.csv");           // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+  combinedFile = SD.open("whiteNoiseCombinedMic8.csv",FILE_WRITE);   // Creates file on the SD 
 if (!combinedFile) {
     Serial.println("Failed to open file.");
     return; // Exit the function or handle the error
@@ -165,10 +165,10 @@ if (!combinedFile) {
 void recordSineSweep() {
   Serial.println("Recording sine sweep");
   uint32_t sweepSamples = sineSweepTime * SAMPLE_RATE;
-  removeIfExists("sweepCombined.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
-  combinedFile = SD.open("sweepCombined.csv", FILE_WRITE);  // Create file on SD card
+  removeIfExists("fullishSweepCombinedMic8.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+  combinedFile = SD.open("fullishSweepCombinedMic8.csv", FILE_WRITE);  // Create file on SD card
   sineSweep.play(1, 20, 1220, sineSweepTime);               // Initializes sine sweep from 20Hz to 1220Hz over 1 second
-  recordBothToFileSingleFile(combinedFile, sweepSamples);   // Save both inputs in a .CSV file
+  recordBothToFileSingleFile(combinedFile, sweepSamples);   // Save both inputs in a Mic8.csv file
   combinedFile.close();                                     // Closes the file on SD
   Serial.println("Sine sweep done.");
 }

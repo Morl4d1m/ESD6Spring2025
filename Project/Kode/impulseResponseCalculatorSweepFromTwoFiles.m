@@ -44,17 +44,18 @@ f = (0:Nfft/2-1) * fs / Nfft;
 
 % === Plot: Impulse response ===
 figure;
-%subplot(2,1,1);
-%plot(t, h, 'k');
-%xlabel('Time (s)');
-%ylabel('Amplitude');
-%title('Impulse Response (Time Domain)');
-%grid on;
+subplot(2,1,1);
+plot(t, h, 'k');
+xlabel('Time (s)');
+ylabel('Amplitude');
+title('Impulse Response (Time Domain)');
+xlim([0 0.01]);
+grid on;
 
 % === Plot: Magnitude frequency response ===
 H_dB = 20 * log10(abs(H(1:Nfft/2)));
 
-%subplot(2,1,2);
+subplot(2,1,2);
 plot(f, H_dB, 'b');
 xlabel('Frequency (Hz)');
 ylabel('Magnitude (dB)');
