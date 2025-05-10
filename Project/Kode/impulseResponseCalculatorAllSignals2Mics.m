@@ -4,14 +4,15 @@
 
 % === User parameters ===
 fs = 44100;  % Sampling rate (Hz)
-output_dir = "C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\impulseResponses\2Mics\2I2SChannels\";
+output_dir = "E:\";
 
 % === Signal file paths ===
 file_paths = {
-    'sweepCombined2Mics2I2S.csv', ...
+    %'sweepCombined2Mics2I2S.csv', ...
     'sine520Combined2Mics2I2S.csv', ...
     'whiteNoiseCombined2Mics2I2S.csv', ...
     'sineShifted180Combined2Mics2I2S.csv' %...
+    
     %'fullSweepCombined2Mics.csv'
 };
 

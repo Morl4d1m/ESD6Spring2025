@@ -122,7 +122,7 @@ void recordSine() {
       Serial.println("Failed to open file.");
       return;  // Exit the function or handle the error
     }
-    recordThreeToFileSingleFile(combinedFile, SAMPLE_RATE);  // Saves the current audio to SD
+    recordThreeToFileSingleFile(combinedFile, 441000);  // Saves the current audio to SD
     combinedFile.close();                                    // Closes the file on SD
   }
   sineWave.amplitude(0);  // Turns off the sinusoid
@@ -144,7 +144,7 @@ void recordPhaseShift() {
       Serial.println("Failed to open file.");
       return;  // Exit the function or handle the error
     }
-    recordThreeToFileSingleFile(combinedFile, SAMPLE_RATE);  // Saves the current audio to SD
+    recordThreeToFileSingleFile(combinedFile, 441000);  // Saves the current audio to SD
     combinedFile.close();                                    // Closes the file on SD
   }
   sineWave.amplitude(0);  // Turns off the sinusoid
@@ -160,7 +160,7 @@ void recordWhiteNoise() {
     Serial.println("Failed to open file.");
     return;  // Exit the function or handle the error
   }
-  recordThreeToFileSingleFile(combinedFile, SAMPLE_RATE);  // Saves the current audio to SD
+  recordThreeToFileSingleFile(combinedFile, 441000);  // Saves the current audio to SD
   combinedFile.close();                                    // Closes the file on SD
   whiteNoise.amplitude(0);                                 // Turns off the white noise
   Serial.println("White noise done.");
@@ -168,7 +168,7 @@ void recordWhiteNoise() {
 
 void recordSineSweep() {
   Serial.println("Recording sine sweep");
-  uint32_t sweepSamples = sineSweepTime * SAMPLE_RATE;
+  uint32_t sweepSamples = sineSweepTime * 441000;
   removeIfExists("sweepCombined2Mics2I2S.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
   combinedFile = SD.open("sweepCombined2Mics2I2S.csv", FILE_WRITE);  // Create file on SD card
   sineSweep.play(1, 20, 1220, sineSweepTime);                        // Initializes sine sweep from 20Hz to 1220Hz over 1 second
