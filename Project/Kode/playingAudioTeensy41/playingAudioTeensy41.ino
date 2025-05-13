@@ -35,7 +35,7 @@ AudioConnection patchCord4(sineSweep, 0, mixer, 3);  // Sends the sine sweep to 
 // Global variables
 uint16_t count = 1;
 const uint8_t ledPin = 13;        // Pin 13 is the builtin LED
-uint32_t LFSRBits = 21;           // Change this between 2 and 32
+uint32_t LFSRBits = 2;           // Change this between 2 and 32
 const unsigned long delayUS = 1;  // Delay in microseconds between bits
 uint32_t LFSR;
 uint32_t mask;
@@ -58,6 +58,7 @@ void setup() {
 }
 
 void loop() {
+  /*
   Serial.print("Iteration #");
   Serial.println(count);
   count++;
@@ -78,17 +79,17 @@ void loop() {
   Serial.println("Sine sweep");
   sineSweep.play(0.5, 500, 2000, sineSweepTime);
   wait(sineSweepTime*1000);
-  */
-
+  
+*/
   generateMLS();
-  /*
+  
   if (LFSRBits < 32) { // Looping through various lengths to listen to different MLS's
     LFSRBits++;
   } else if (LFSRBits >= 32) {
     LFSRBits = 2;
     return;
   }
-*/
+
   delay(1000);
 }
 
@@ -143,7 +144,7 @@ uint32_t feedbackTaps(uint8_t bits) {
   }
 }
 
-void playMLSBit(bool bit, int samplesPerBit = 1, int amplitude = 28000) {
+void playMLSBit(bool bit, int samplesPerBit = 1, int amplitude = 28000) { // Bool is the actual input parameter of the function (0 or 1), while samplesPerBit and amplitude are static. Amplitude is set at 28000 to not risk clipping the signal on a speaker
   static int16_t buffer[128];
   static int bufferIndex = 0;
 
@@ -184,7 +185,7 @@ void generateMLS() {
   for (uint32_t i = 0; i < MLSLength; i++) {
     bool feedback = __builtin_parity(LFSR & taps);  // Parity of taps using builtin parity to speed up the process
     // Output the feedback bit, NOT the LFSR MSB
-    Serial.print(feedback ? 1 : 0);
+    //Serial.print(feedback ? 1 : 0);
     playMLSBit(feedback);
 
     LFSR <<= 1;  // Shift left

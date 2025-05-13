@@ -86,42 +86,42 @@ void wait(unsigned int milliseconds) {
   }
 }
 
+// Feedback tap map for various left-shifting LFSR lengths (primitive polynomials) with correct taps
 uint32_t feedbackTaps(uint8_t bits) {
   switch (bits) {
-    case 2: return (1 << 1) | (1 << 0);
-    case 3: return (1 << 2) | (1 << 0);
-    case 4: return (1 << 3) | (1 << 0);
-    case 5: return (1 << 4) | (1 << 2);
-    case 6: return (1 << 5) | (1 << 4);
-    case 7: return (1 << 6) | (1 << 5);
-    case 8: return (1 << 7) | (1 << 5) | (1 << 4) | (1 << 3);
-    case 9: return (1 << 8) | (1 << 4);
-    case 10: return (1 << 9) | (1 << 6);
-    case 11: return (1 << 10) | (1 << 8);
-    case 12: return (1 << 11) | (1 << 10) | (1 << 4) | (1 << 1);
-    case 13: return (1 << 12) | (1 << 3) | (1 << 2) | (1 << 0);
-    case 14: return (1 << 13) | (1 << 11) | (1 << 9) | (1 << 8);
-    case 15: return (1 << 14) | (1 << 13);
-    case 16: return (1 << 15) | (1 << 13) | (1 << 12) | (1 << 10);
-    case 17: return (1 << 16) | (1 << 13);
-    case 18: return (1 << 17) | (1 << 10);
-    case 19: return (1 << 18) | (1 << 5);
-    case 20: return (1 << 19) | (1 << 16);
-    case 21: return (1 << 20) | (1 << 18);
-    case 22: return (1 << 21) | (1 << 20);
-    case 23: return (1 << 22) | (1 << 17);
-    case 24: return (1 << 23) | (1 << 22) | (1 << 21) | (1 << 16);
-    case 25: return (1 << 24) | (1 << 22);
-    case 26: return (1 << 25) | (1 << 6) | (1 << 2) | (1 << 1);
-    case 27: return (1 << 26) | (1 << 4) | (1 << 1) | (1 << 0);
-    case 28: return (1 << 27) | (1 << 24);
-    case 29: return (1 << 28) | (1 << 26);
-    case 30: return (1 << 29) | (1 << 5) | (1 << 3) | (1 << 0);
-    case 31: return (1 << 30) | (1 << 27);
-    case 32: return (1 << 31) | (1 << 21) | (1 << 1) | (1 << 0);
+    case 2: return (1 << 1) | (1 << 0);                             // x^2 + x + 1
+    case 3: return (1 << 2) | (1 << 0);                             // x^3 + x + 1
+    case 4: return (1 << 3) | (1 << 0);                             // x^4 + x + 1
+    case 5: return (1 << 4) | (1 << 2);                             // x^5 + x^3 + 1
+    case 6: return (1 << 5) | (1 << 4);                             // x^6 + x^5 + 1
+    case 7: return (1 << 6) | (1 << 5);                             // x^7 + x^6 + 1
+    case 8: return (1 << 7) | (1 << 5) | (1 << 4) | (1 << 3);       // x^8 + x^6 + x^5 + x^4 + 1
+    case 9: return (1 << 8) | (1 << 4);                             // x^9 + x^5 + 1
+    case 10: return (1 << 9) | (1 << 6);                            // x^10 + x^7 + 1
+    case 11: return (1 << 10) | (1 << 8);                           // x^11 + x^9 + 1
+    case 12: return (1 << 11) | (1 << 5) | (1 << 3) | (1 << 0);     // x^12 + x^6 + x^4 + x + 1
+    case 13: return (1 << 12) | (1 << 3) | (1 << 2) | (1 << 0);     // x^13 + x^4 + x^3 + x + 1
+    case 14: return (1 << 13) | (1 << 12) | (1 << 11) | (1 << 1);   // x^14 + x^13 + x^3 + x 1
+    case 15: return (1 << 14) | (1 << 13);                          // x^15 + x^14 + 1
+    case 16: return (1 << 15) | (1 << 13) | (1 << 12) | (1 << 10);  // x^16 + x^14 + x^13 + x^11 + 1
+    case 17: return (1 << 16) | (1 << 13);                          // x^17 + x^14 + 1
+    case 18: return (1 << 17) | (1 << 10);                          // x^18 + x^11 + 1
+    case 19: return (1 << 18) | (1 << 17) | (1 << 16) | (1 << 13);  // x^19 + x^18 + x^16 + x^14 + 1
+    case 20: return (1 << 19) | (1 << 16);                          // x^20 + x^17 + 1
+    case 21: return (1 << 20) | (1 << 18);                          // x^21 + x^19 + 1
+    case 22: return (1 << 21) | (1 << 20);                          // x^22 + x^21 + 1
+    case 23: return (1 << 22) | (1 << 17);                          // x^23 + x^18 + 1
+    case 24: return (1 << 23) | (1 << 22) | (1 << 21) | (1 << 16);  // x^24 + x^23 + x^22 + x^17 + 1
+    case 25: return (1 << 24) | (1 << 21);                          // x^25 + x^22 + 1
+    case 26: return (1 << 25) | (1 << 5) | (1 << 1) | (1 << 0);     // x^26 + x^6 + x^2 + x 1
+    case 27: return (1 << 26) | (1 << 4) | (1 << 1) | (1 << 0);     // x^27 + x^5 + x^2 + x + 1
+    case 28: return (1 << 27) | (1 << 24);                          // x^28 + x^25 + 1
+    case 29: return (1 << 28) | (1 << 26);                          // x^29 + x^27 + 1
+    case 30: return (1 << 29) | (1 << 5) | (1 << 3) | (1 << 0);     // x^30 + x^6 + x^4 + x + 1
+    case 31: return (1 << 30) | (1 << 27);                          // x^31 + x^28 + 1
+    case 32: return (1 << 31) | (1 << 21) | (1 << 1) | (1 << 0);    // x^32 + x^22 + x^2 + x + 1
     default:
       Serial.println("Unsupported bit length!");
-      if (logFile) { logFile.println("Unsupported bit length!"); logFile.flush(); }
       return 0;
   }
 }

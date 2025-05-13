@@ -3,20 +3,19 @@
 #include <SPI.h>
 #include <SerialFlash.h>
 
-#define CH12Pin 10
-#define CH12Pin2 33
-#define CH34Pin 11
-#define CH56Pin 12
+#define CH12Pin 30
+#define CH34Pin 31
+#define CH56Pin 32
 
-AudioInputI2S i2sMic1;
-AudioInputI2S2 i2sMic2;
+AudioInputI2S2 i2sMic1;
+//AudioInputI2S2 i2sMic2;
 AudioAnalyzeFFT1024 fft10241;
 AudioConnection patchCord1(i2sMic1, 0, fft10241, 0);  // 1 taller afgør om den modtager på L eller R. Sæt til 0 for L og 1 for R, og husk at sætte microphonen til hhv GND og VDD
 
 AudioAnalyzeFFT1024 fft10242;
-AudioConnection patchCord2(i2sMic2, 0, fft10242, 0);  // 1 taller afgør om den modtager på L eller R. Sæt til 0 for L og 1 for R, og husk at sætte microphonen til hhv GND og VDD
+AudioConnection patchCord2(i2sMic1, 1, fft10242, 0);  // 1 taller afgør om den modtager på L eller R. Sæt til 0 for L og 1 for R, og husk at sætte microphonen til hhv GND og VDD
 
-const float binWidth = 44100.0 / 1024.0;  // ≈ 43.07 Hz bandwidth of bins
+const float binWidth = 20;//44100.0 / 1024.0;  // ≈ 43.07 Hz bandwidth of bins
 int loopNumber = 1;
 
 void setup() {
@@ -29,7 +28,6 @@ void setup() {
   fft10242.windowFunction(AudioWindowRectangular1024);
   Serial.println("Setup done");
   digitalWrite(CH12Pin, LOW);
-  digitalWrite(CH12Pin2, LOW);
   digitalWrite(CH34Pin, LOW);
   digitalWrite(CH56Pin, LOW);
 }
@@ -37,8 +35,8 @@ void setup() {
 void loop() {
   //Serial.print("This is loop number");
   //Serial.println(loopNumber);
+  delay(1000);
   digitalWrite(CH12Pin, HIGH);
-  digitalWrite(CH12Pin2, HIGH);
   delay(50);
   for (int i = 0; i < 1000000000; i++) {
     if (fft10241.available()) {
@@ -75,7 +73,6 @@ void loop() {
     }
   }
   digitalWrite(CH12Pin, LOW);
-  digitalWrite(CH12Pin2, LOW);
   delay(1000);
   digitalWrite(CH34Pin, HIGH);
   delay(50);

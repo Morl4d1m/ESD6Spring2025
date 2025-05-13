@@ -1,6 +1,6 @@
-%clc;
-%clear;
-%close all;
+clc;
+clear;
+close all;
 
 % === User parameters ===
 fs = 44100;  % Sampling rate (Hz)
@@ -8,10 +8,10 @@ output_dir = "C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\
 
 % === Signal file paths ===
 file_paths = {
-    'sweepCombined.csv', ...
-    'sine1020Combined.csv', ...
-    'whiteNoiseCombined.csv', ...
-    'sineShifted180Combined.csv'
+    'sweepCombined.csv'%, ...
+    %'sine1020Combined.csv', ...
+    %'whiteNoiseCombined.csv', ...
+    %'sineShifted180Combined.csv'
 };
 
 % === Loop over each signal type ===
@@ -32,7 +32,7 @@ for i = 1:length(file_paths)
     fprintf("Duration mic: %.2f seconds\n", durationy);
 
     % === Ensure same length ===
-    N = min(length(x), length(y));
+    N = 2048;%min(length(x), length(y));
     x = x(1:N);
     y = y(1:N);
 

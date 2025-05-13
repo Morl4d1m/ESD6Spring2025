@@ -6,11 +6,12 @@
 #include <SD.h>
 #include <SPI.h>
 #include <SerialFlash.h>
+#define CH12Pin 30
 
 // General audio preparation
 AudioOutputI2S i2s1;
-AudioInputI2S i2sMic1;
-AudioInputI2S2 i2sMic2;
+AudioInputI2S2 i2sMic1;
+//AudioInputI2S2 i2sMic2;
 AudioControlSGTL5000 sgtl5000_1;
 
 // Mixer to enable all signals being "active" at once.
@@ -114,7 +115,7 @@ void recordSine() {
   for (int f = 20; f <= 1220; f += 50) {  // Increments frequency by 50 Hz
     sineWave.frequency(f);                // Sets the current frequency
     char filenameCombined[45];
-    snprintf(filenameCombined, sizeof(filenameCombined), "sine%dCombined2Mics2I2S.csv", f);
+    snprintf(filenameCombined, sizeof(filenameCombined), "sine%dCombined2MicsRELAY.csv", f);
     Serial.println(filenameCombined);
     removeIfExists(filenameCombined);                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
     combinedFile = SD.open(filenameCombined, FILE_WRITE);  // Creates file on the SD card
@@ -136,7 +137,7 @@ void recordPhaseShift() {
   for (int phase = 0; phase <= 360; phase += 90) {  // Increments phase shift by 90 degrees
     sineWave.phase(0);                              // Initializes phase at 0 degrees
     char filenameCombined[45];
-    snprintf(filenameCombined, sizeof(filenameCombined), "sineShifted%dCombined2Mics2I2S.csv", phase);
+    snprintf(filenameCombined, sizeof(filenameCombined), "sineShifted%dCombined2MicsRELAY.csv", phase);
     Serial.println(filenameCombined);
     removeIfExists(filenameCombined);                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
     combinedFile = SD.open(filenameCombined, FILE_WRITE);  // Creates file on the SD card
@@ -154,8 +155,8 @@ void recordPhaseShift() {
 void recordWhiteNoise() {
   Serial.println("Recording white noise");
   whiteNoise.amplitude(0.3);                                              // Sets the amplitude for white noise signal
-  removeIfExists("whiteNoiseCombined2Mics2I2S.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
-  combinedFile = SD.open("whiteNoiseCombined2Mics2I2S.csv", FILE_WRITE);  // Creates file on the SD
+  removeIfExists("whiteNoiseCombined2MicsRELAY.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+  combinedFile = SD.open("whiteNoiseCombined2MicsRELAY.csv", FILE_WRITE);  // Creates file on the SD
   if (!combinedFile) {
     Serial.println("Failed to open file.");
     return;  // Exit the function or handle the error
@@ -169,10 +170,10 @@ void recordWhiteNoise() {
 void recordSineSweep() {
   Serial.println("Recording sine sweep");
   uint32_t sweepSamples = sineSweepTime * 441000;
-  removeIfExists("sweepCombined2Mics2I2S.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
-  combinedFile = SD.open("sweepCombined2Mics2I2S.csv", FILE_WRITE);  // Create file on SD card
+  removeIfExists("sweepCombined2MicsRELAY.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+  combinedFile = SD.open("sweepCombined2MicsRELAY.csv", FILE_WRITE);  // Create file on SD card
   sineSweep.play(1, 20, 1220, sineSweepTime);                        // Initializes sine sweep from 20Hz to 1220Hz over 1 second
-  recordThreeToFileSingleFile(combinedFile, sweepSamples);           // Save both inputs in a 2Mics2I2S.csv file
+  recordThreeToFileSingleFile(combinedFile, sweepSamples);           // Save both inputs in a 2MicsRELAY.csv file
   combinedFile.close();                                              // Closes the file on SD
   Serial.println("Sine sweep done.");
 }
