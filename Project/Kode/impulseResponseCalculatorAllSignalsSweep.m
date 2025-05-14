@@ -32,7 +32,7 @@ for i = 1:length(file_paths)
     fprintf("Duration mic: %.2f seconds\n", durationy);
 
     % === Ensure same length ===
-    N = 2048;%min(length(x), length(y));
+    N = min(length(x), length(y));
     x = x(1:N);
     y = y(1:N);
 
@@ -68,6 +68,8 @@ for i = 1:length(file_paths)
 
     % === Plot Magnitude Frequency Response ===
     H_dB = -20 * log10(abs(H(1:Nfft / 2)));
+    H_half = H(1:Nfft/2 + 1);         % positive‐freq bins
+    H_phase_rad = angle(H_half);    % phase in radians
 
     %subplot(2, 1, 2);
     plot(f, H_dB, 'b');
