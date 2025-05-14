@@ -1,0 +1,100 @@
+clc;
+clear;
+close all;
+
+% === User parameters ===
+fs = 44100;              % Sampling rate (Hz)
+blockSize = 2048;        % STFT block size
+hopSize = blockSize/2; % 50% overlap
+output_dir = "C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\impulseResponses\1Mic\";
+
+% === Signal file paths ===
+file_paths = {
+    'sweepCombined.csv'  % Replace with your MLS file if needed
+};
+
+for i = 1:length(file_paths)
+    filename = fullfile(output_dir, file_paths{i});
+    
+    % === Load signals ===
+    data = readmatrix(filename);  % Each row: [mixer, mic]
+    x = data(:, 1);
+    y = data(:, 2);
+
+    % === Make signals zero-mean ===
+    x = x - mean(x);
+    y = y - mean(y);
+
+    % === Ensure same length ===
+    N = min(length(x), length(y));
+    x = x(1:N);
+    y = y(1:N);
+
+    % === STFT setup ===
+    numHops = ceil((N - blockSize) / hopSize) + 1;
+    totalLen = (numHops - 1) * hopSize + blockSize;
+    x_padded = [x; zeros(totalLen - N, 1)];
+    y_padded = [y; zeros(totalLen - N, 1)];
+
+    % === STFT with rectangular window, 50% overlap ===
+    X_blocks = zeros(blockSize, numHops);
+    Y_blocks = zeros(blockSize, numHops);
+    for k = 1:numHops
+        idx = (k-1)*hopSize + (1:blockSize);
+        x_blk = x_padded(idx);
+        y_blk = y_padded(idx);
+
+        X_blocks(:, k) = fft(x_blk);
+        Y_blocks(:, k) = fft(y_blk);
+    end
+
+    % === Spectral averaging and deconvolution ===
+    epsilon = 1e-10;
+    X_mean = mean(X_blocks, 2);
+    Y_mean = mean(Y_blocks, 2);
+    H_avg = Y_mean ./ (X_mean + epsilon);
+
+    % === Match full FFT length ===
+    Nfft = 2^nextpow2(2 * N);
+    H_avg_padded = [H_avg; zeros(Nfft - blockSize, 1)];
+    h_avg = real(ifft(H_avg_padded));
+    h_avg = h_avg(1:N);
+
+    % === Reference full FFT method ===
+    X_full = fft(x, Nfft);
+    Y_full = fft(y, Nfft);
+    H_full = Y_full ./ (X_full + epsilon);
+    h_fft = real(ifft(H_full));
+    h_fft = h_fft(1:N);
+
+    % === Plot impulse response ===
+    t = (0:N-1)/fs;
+    figure;
+    subplot(2,1,1);
+    plot(t, h_fft, 'k', 'DisplayName', 'FFT');
+    hold on;
+    plot(t, h_avg, 'r--', 'DisplayName', 'STFT Avg (rect, 50%)');
+    xlabel('Time (s)');
+    ylabel('Amplitude');
+    title(sprintf('Impulse Response Comparison - %s', file_paths{i}));
+    legend;
+    grid on;
+
+    % === Frequency Response ===
+    f = (0:Nfft/2 - 1) * fs / Nfft;
+    H_fft_dB = -20*log10(abs(H_full(1:Nfft/2)));
+    H_avg_dB = -20*log10(abs(fft(h_avg, Nfft)));
+    H_avg_dB = H_avg_dB(1:Nfft/2);
+
+    subplot(2,1,2);
+    plot(f, H_fft_dB, 'k', 'DisplayName', 'FFT');
+    hold on;
+    plot(f, H_avg_dB, 'r--', 'DisplayName', 'STFT Avg (rect, 50%)');
+    xlabel('Frequency (Hz)');
+    ylabel('Magnitude (dB)');
+    title('Frequency Response Comparison');
+    xlim([0 1250]);
+    xticks(0:20:1250);
+    legend;
+    grid on;
+end

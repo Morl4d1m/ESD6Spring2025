@@ -32,7 +32,7 @@ for i = 1:length(file_paths)
     fprintf("Duration mic: %.2f seconds\n", durationy);
 
     % === Ensure same length ===
-    N = min(length(x), length(y));
+    N = 16384;%min(length(x), length(y));
     x = x(1:N);
     y = y(1:N);
 

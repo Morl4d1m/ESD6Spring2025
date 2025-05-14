@@ -64,33 +64,32 @@ void computeImpulseResponse() {
     return;
   }
 
-  const size_t Nfft = next_power_of_2(BLOCK_SIZE + OVERLAP_SIZE);  // Next power of 2 for FFT length
+  const size_t Nfft = next_power_of_2(BLOCK_SIZE + OVERLAP_SIZE);
   float* x_block = (float*)malloc(BLOCK_SIZE * sizeof(float));
   float* y_block = (float*)malloc(BLOCK_SIZE * sizeof(float));
+  float* overlap_x = (float*)malloc(OVERLAP_SIZE * sizeof(float));
+  float* overlap_y = (float*)malloc(OVERLAP_SIZE * sizeof(float));
 
   float* X = (float*)calloc(2 * Nfft, sizeof(float));
   float* Y = (float*)calloc(2 * Nfft, sizeof(float));
   float* Sxy = (float*)calloc(2 * Nfft, sizeof(float));
   float* Sxx = (float*)calloc(2 * Nfft, sizeof(float));
-
   float* H = (float*)calloc(2 * Nfft, sizeof(float));
   float* h = (float*)malloc(Nfft * sizeof(float));
 
-  if (!x_block || !y_block || !X || !Y || !Sxy || !Sxx || !H || !h) {
+  if (!x_block || !y_block || !overlap_x || !overlap_y || !X || !Y || !Sxy || !Sxx || !H || !h) {
     Serial.println("Memory allocation failed!");
     return;
   }
 
   Serial.println("Memory allocation successful");
 
-  // Prepare FFT instance
   arm_cfft_radix4_instance_f32 S;
-  arm_cfft_radix4_init_f32(&S, Nfft, 0, 1);  // FFT forward
+  arm_cfft_radix4_init_f32(&S, Nfft, 0, 1);
 
   size_t blockCount = 0;
   size_t lastIndex = 0;
-  
-  // File reading and processing loop
+
   while (file.available()) {
     size_t N = 0;
 
@@ -107,15 +106,12 @@ void computeImpulseResponse() {
       }
     }
 
-    // If block is fully read, process it
     if (N > 0) {
       blockCount++;
 
-      // Zero out previous block's FFT data
       memset(X, 0, 2 * Nfft * sizeof(float));
       memset(Y, 0, 2 * Nfft * sizeof(float));
 
-      // Interleave x_block, y_block into X[], Y[]
       for (size_t i = 0; i < N; ++i) {
         X[2 * i] = x_block[i];
         Y[2 * i] = y_block[i];
@@ -123,97 +119,97 @@ void computeImpulseResponse() {
         Y[2 * i + 1] = 0.0f;
       }
 
+      // Add overlap to the current block
+      for (size_t i = 0; i < OVERLAP_SIZE; ++i) {
+        X[2 * i] += overlap_x[i];
+        Y[2 * i] += overlap_y[i];
+      }
+
       // Perform FFT for both X and Y
       arm_cfft_radix4_f32(&S, X);
       arm_cfft_radix4_f32(&S, Y);
 
-      // Accumulate cross-spectral and auto-spectral densities
+      // Normalize FFT results
+      for (size_t i = 0; i < Nfft; i++) {
+        X[2 * i] /= (float)Nfft;
+        X[2 * i + 1] /= (float)Nfft;
+        Y[2 * i] /= (float)Nfft;
+        Y[2 * i + 1] /= (float)Nfft;
+      }
+
+      // Compute cross-spectral and auto-spectral densities
       for (size_t i = 0; i < Nfft; ++i) {
         float xr = X[2 * i], xi = X[2 * i + 1];
         float yr = Y[2 * i], yi = Y[2 * i + 1];
-
-        // Cross-spectral density Sxy
-        Sxy[2 * i] += yr * xr + yi * xi;
-        Sxy[2 * i + 1] += yi * xr - yr * xi;
-
-        // Auto-spectral density Sxx (|X|^2)
-        float mag_sq = xr * xr + xi * xi;
-        Sxx[2 * i] += mag_sq;
+        
+        // Cross Power Spectrum
+        Sxy[2 * i] = xr * yr + xi * yi;
+        Sxy[2 * i + 1] = xi * yr - xr * yi;
+        
+        // Auto Power Spectrum of X
+        Sxx[2 * i] = xr * xr + xi * xi;
+        Sxx[2 * i + 1] = 0;
       }
 
-      // Compute the transfer function H(f) in frequency domain
+      // Compute H as the transfer function (Sxy / Sxx)
       for (size_t i = 0; i < Nfft; ++i) {
-        float reSxy = Sxy[2 * i];
-        float imSxy = Sxy[2 * i + 1];
-        float denom = Sxx[2 * i] + epsilon;
-
-        H[2 * i] = reSxy / denom;
-        H[2 * i + 1] = imSxy / denom;
+        float denom = Sxx[2 * i] * Sxx[2 * i] + Sxx[2 * i + 1] * Sxx[2 * i + 1] + epsilon;
+        H[2 * i] = (Sxy[2 * i] * Sxx[2 * i] + Sxy[2 * i + 1] * Sxx[2 * i + 1]) / denom;
+        H[2 * i + 1] = (Sxy[2 * i] * Sxx[2 * i + 1] - Sxy[2 * i + 1] * Sxx[2 * i]) / denom;
       }
 
-      // Perform IFFT to obtain impulse response
-      arm_cfft_radix4_init_f32(&S, Nfft, 1, 1);  // FFT inverse
-      arm_cfft_radix4_f32(&S, H);  // Inverse FFT
+      // Inverse FFT to get the impulse response
+      arm_cfft_radix4_init_f32(&S, Nfft, 1, 1);
+      arm_cfft_radix4_f32(&S, H);
 
-      // Normalize and extract the real part
-      for (size_t i = 0; i < Nfft; ++i) {
+      // Normalize impulse response
+      for (size_t i = 0; i < Nfft; i++) {
         H[2 * i] /= (float)Nfft;
         H[2 * i + 1] /= (float)Nfft;
-        h[i] = H[2 * i];  // Impulse response is real part
       }
 
-      // Save the results incrementally to SD
-      if (blockCount == 1) {
-        File combinedOut = SD.open("fft_and_impulse.csv", FILE_WRITE);
-        if (!combinedOut) {
-          Serial.println("Failed to open fft_and_impulse.csv!");
-          return;
-        }
-        // Header
-        combinedOut.println("Freq_Hz,X_real,X_imag,Y_real,Y_imag,H_real,H_imag,H_mag_dB,H_phase_rad,Impulse_response");
-        combinedOut.close();
-      }
+      // Save the results
+      saveResults(blockCount, X, Y, H, h, Nfft);
 
-      // Write FFT data and impulse response to SD
-      File combinedOut = SD.open("fft_and_impulse.csv", FILE_WRITE);
-      if (!combinedOut) {
-        Serial.println("Failed to open fft_and_impulse.csv for writing!");
-        return;
-      }
-
-      float freqRes = (float)fs / Nfft;
-      size_t N_unique = Nfft / 2 + 1;
-
-      for (size_t i = 0; i < N_unique; i++) {
-        float freq = i * freqRes;
-        float xr = X[2 * i];
-        float xi = X[2 * i + 1];
-        float yr = Y[2 * i];
-        float yi = Y[2 * i + 1];
-        float hr = H[2 * i];
-        float hi = H[2 * i + 1];
-
-        float x_mag = sqrtf(xr * xr + xi * xi);
-        float y_mag = sqrtf(yr * yr + yi * yi);
-        float h_mag = sqrtf(hr * hr + hi * hi);
-
-        float mag_dB = abs(20.0f * log10f((y_mag + epsilon) / (x_mag + epsilon)));
-        float phase = atan2f(hi, hr);
-        float h_val = h[i];
-
-        combinedOut.printf("%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n", freq, xr, xi, yr, yi, hr, hi, mag_dB, phase, h_val);
-      }
-      combinedOut.close();
+      // Copy overlap for the next block
+      memcpy(overlap_x, &x_block[BLOCK_SIZE - OVERLAP_SIZE], OVERLAP_SIZE * sizeof(float));
+      memcpy(overlap_y, &y_block[BLOCK_SIZE - OVERLAP_SIZE], OVERLAP_SIZE * sizeof(float));
     }
   }
 
-  free(x_block);
-  free(y_block);
-  free(X);
-  free(Y);
-  free(Sxy);
-  free(Sxx);
-  free(H);
-  free(h);
-  Serial.println("Cleanup done");
+  file.close();
+  Serial.println("Processing complete.");
+}
+
+
+void saveResults(size_t blockCount, float* X, float* Y, float* H, float* h, size_t Nfft) {
+  // Implement logic to save results incrementally to the SD card after processing each block
+  File combinedOut = SD.open("fft_and_impulse.csv", FILE_WRITE);
+  if (!combinedOut) {
+    Serial.println("Failed to open fft_and_impulse.csv!");
+    return;
+  }
+
+  // For the first block, add headers
+  if (blockCount == 1) {
+    combinedOut.println("Freq_Hz,X_real,X_imag,Y_real,Y_imag,H_real,H_imag,H_mag_dB,H_phase_rad,Impulse_response");
+  }
+
+  float freqRes = (float)fs / Nfft;
+  size_t N_unique = Nfft / 2 + 1;
+
+  for (size_t i = 0; i < N_unique; ++i) {
+    float freq = i * freqRes;
+    float xr = X[2 * i], xi = X[2 * i + 1];
+    float yr = Y[2 * i], yi = Y[2 * i + 1];
+    float hr = H[2 * i], hi = H[2 * i + 1];
+
+    float mag_dB = 20.0f * log10f(sqrtf(xr * xr + xi * xi) / (sqrtf(yr * yr + yi * yi) + epsilon));
+    float phase = atan2f(hi, hr);
+    float h_val = (i < Nfft) ? h[i] : 0.0f;
+
+    combinedOut.printf("%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n", freq, xr, xi, yr, yi, hr, hi, mag_dB, phase, h_val);
+  }
+
+  combinedOut.close();
 }
