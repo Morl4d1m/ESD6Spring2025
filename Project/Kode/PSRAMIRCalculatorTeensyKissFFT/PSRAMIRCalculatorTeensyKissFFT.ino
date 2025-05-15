@@ -33,6 +33,18 @@ kiss_fft_cfg kiss_fft_alloc_psram(int nfft, int inverse_fft) {
     return cfg;
 }
 
+kiss_fft_cfg fwd_cfg;
+kiss_fft_cpx* X;
+kiss_fft_cpx* Y;
+
+// Forward declaration of the wrapper
+void kiss_fft_psram(kiss_fft_cfg cfg, const kiss_fft_cpx* in, kiss_fft_cpx* out);
+
+// Force wrapper into PSRAM
+__attribute__((section(".psram"))) void kiss_fft_psram(kiss_fft_cfg cfg, const kiss_fft_cpx* in, kiss_fft_cpx* out) {
+  kiss_fft(cfg, in, out);
+}
+
 const int chipSelect = BUILTIN_SDCARD;
 const char* filename = "sweepCombined.csv";
 const int fs = 44100;
@@ -88,7 +100,7 @@ __attribute__((noinline)) void computeImpulseResponse() {
     return;
   }
 
-  const size_t max_samples = 16384;
+  const size_t max_samples = 65536;
   float* x = (float*)extmem_malloc(max_samples * sizeof(float));
   float* y = (float*)extmem_malloc(max_samples * sizeof(float));
 
@@ -140,8 +152,8 @@ __attribute__((noinline)) void computeImpulseResponse() {
   }
 
   // Perform FFT
-  kiss_fft(fwd_cfg, X, X);
-  kiss_fft(fwd_cfg, Y, Y);
+  kiss_fft_psram(fwd_cfg, X, X);
+  kiss_fft_psram(fwd_cfg, Y, Y);
   Serial.println("FFT done");
 
   // Inverse filter: H = Y / X
