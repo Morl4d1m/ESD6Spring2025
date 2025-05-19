@@ -45,20 +45,20 @@ void setup() {
   AudioMemory(100);               // Haven't quite figures out yet
   Serial.begin(115200);           // Sets BAUD rate
   sgtl5000_1.enable();            // Turns on audio shield
-  sgtl5000_1.volume(0.3);         // Sets the volume on the audio shield
+  sgtl5000_1.volume(1);         // Sets the volume on the audio shield
   sineWave.begin(WAVEFORM_SINE);  // Designates a pure sinusoid
   pinMode(ledPin, OUTPUT);        // Enables the builtin LED
   delay(1000);
 
   // Set gain for different channels from 0-1
-  mixer.gain(0, 0.02);  // Gain for MLS
-  mixer.gain(1, 0.3);   // Gain for pure sine
+  mixer.gain(0, 0.06);  // Gain for MLS
+  mixer.gain(1, 0.6);   // Gain for pure sine
   mixer.gain(2, 0.02);  // Gain for white noise
   mixer.gain(3, 0.02);  // Gain for sine sweep
 }
 
 void loop() {
-  /*
+  
   Serial.print("Iteration #");
   Serial.println(count);
   count++;
@@ -80,7 +80,7 @@ void loop() {
   sineSweep.play(0.5, 500, 2000, sineSweepTime);
   wait(sineSweepTime*1000);
   
-*/
+/*
   generateMLS();
   
   if (LFSRBits < 32) { // Looping through various lengths to listen to different MLS's
@@ -89,7 +89,7 @@ void loop() {
     LFSRBits = 2;
     return;
   }
-
+*/
   delay(1000);
 }
 
