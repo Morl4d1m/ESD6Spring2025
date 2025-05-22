@@ -1,15 +1,48 @@
-// Audio player developed from the 1-2: Test Hardware example available to Teensy, with specific intention of playing signals used in my ESD6 project
-// Current code is meant to function with just the audio shield attached.
-
 #include <Audio.h>
 #include <Wire.h>
 #include <SD.h>
 #include <SPI.h>
 #include <SerialFlash.h>
+#include "kiss_fft.h"
 
 #define CH12Pin 30
 #define CH34Pin 31
 #define CH56Pin 32
+#define CH12Pin2 35  // Two pins are used to absolutely ensure relays are switched
+#define CH34Pin2 34
+#define CH56Pin2 33
+
+// PSRAM allocator for KissFFT
+kiss_fft_cfg kiss_fft_alloc_psram(int nfft, int inverse_fft) {
+  size_t len_needed = 0;
+  // Query memory requirement
+  kiss_fft_alloc(nfft, inverse_fft, nullptr, &len_needed);
+  Serial.printf("Allocating %zu bytes for KissFFT config\n", len_needed);
+
+  void* buffer = extmem_malloc(len_needed);
+  if (!buffer) {
+    Serial.println("[ERROR] PSRAM allocation for KissFFT failed!");
+    return nullptr;
+  }
+  kiss_fft_cfg cfg = kiss_fft_alloc(nfft, inverse_fft, buffer, &len_needed);
+  if (!cfg) {
+    Serial.println("[ERROR] kiss_fft_alloc returned null even after buffer allocation");
+    extmem_free(buffer);
+  }
+  return cfg;
+}
+
+// Wrapper to force PSRAM usage
+__attribute__((section(".psram"))) void kiss_fft_psram(kiss_fft_cfg cfg, const kiss_fft_cpx* in, kiss_fft_cpx* out) {
+  kiss_fft(cfg, in, out);
+}
+
+size_t next_power_of_2(size_t n) {
+  size_t p = 1;
+  while (p < n) p <<= 1;
+  return p;
+}
+
 
 // General audio preparation
 AudioOutputI2S i2s1;
@@ -54,22 +87,22 @@ File micFile;
 File combinedFile;
 
 // Global variables
-uint16_t count = 1;
 const uint8_t ledPin = 13;        // Pin 13 is the builtin LED
 uint32_t LFSRBits = 15;           // Change this between 2 and 32
 const unsigned long delayUS = 1;  // Delay in microseconds between bits
 uint32_t LFSR;
 uint32_t mask;
-float sineSweepTime = 0.743;                 // Practically decides how fast the frequency is changed in the sine sweep, by saying deltaF/time
-const uint16_t SAMPLE_RATE = 44100;                  // Default sample rate
-const uint8_t BLOCK_SIZE = 128;                      // Default block size for the audio.h library
-const int BLOCKS_NEEDED = SAMPLE_RATE / BLOCK_SIZE;  // 1 second of samples
-uint16_t TOTAL_SAMPLES = 441000;
-uint8_t iteration = 0;
+float sineSweepTime = 0.743;                      // Practically decides how fast the frequency is changed in the sine sweep, by saying deltaF/time
+const uint16_t sampleRate = 44100;                // Default sample rate
+const uint8_t blockSize = 128;                    // Default block size for the audio.h library
+const int blocksNeeded = sampleRate / blockSize;  // 1 second of samples
+uint16_t totalSamples = 441000;                   // Desired length of signal sequence
+uint8_t iteration = 0;                            // Counter for alternating between microphone pairs
+const float epsilon = 1e-10f;
 
 void setup() {
   Serial.begin(115200);
-  AudioMemory(1500);
+  AudioMemory(1500);  // Way too much audiomemory set aside, but currently functional
 
   // SD setup
   if (!SD.begin(chipSelect)) {
@@ -83,9 +116,15 @@ void setup() {
   pinMode(CH12Pin, OUTPUT);
   pinMode(CH34Pin, OUTPUT);
   pinMode(CH56Pin, OUTPUT);
+  pinMode(CH12Pin2, OUTPUT);
+  pinMode(CH34Pin2, OUTPUT);
+  pinMode(CH56Pin2, OUTPUT);
   digitalWrite(CH12Pin, LOW);
   digitalWrite(CH34Pin, LOW);
   digitalWrite(CH56Pin, LOW);
+  digitalWrite(CH12Pin2, LOW);
+  digitalWrite(CH34Pin2, LOW);
+  digitalWrite(CH56Pin2, LOW);
 
   // Audio setup
   sgtl5000_1.enable();
@@ -104,7 +143,8 @@ void setup() {
 void loop() {
   switch (iteration) {
     case 0:
-      digitalWrite(CH12Pin, HIGH);
+      digitalWrite(CH12Pin, HIGH);  // Switch the relay for channel 1 and 2
+      digitalWrite(CH12Pin2, HIGH);
       delay(50);
       recordSine();
       delay(1000);
@@ -116,12 +156,14 @@ void loop() {
       delay(1000);
       //recordMLS();
       delay(1000);
-      digitalWrite(CH12Pin, LOW);
+      digitalWrite(CH12Pin, LOW);  // Switch the relay for channel 1 and 2
+      digitalWrite(CH12Pin2, LOW);
       Serial.println("Recordings on channel 1/2 done.");
       iteration++;
       delay(1000);
     case 1:
-      digitalWrite(CH34Pin, HIGH);
+      digitalWrite(CH34Pin, HIGH);  // Switch the relay for channel 3 and 4
+      digitalWrite(CH34Pin2, HIGH);
       delay(50);
       recordSine();
       delay(1000);
@@ -133,12 +175,14 @@ void loop() {
       delay(1000);
       //recordMLS();
       delay(1000);
-      digitalWrite(CH34Pin, LOW);
+      digitalWrite(CH34Pin, LOW);  // Switch the relay for channel 3 and 4
+      digitalWrite(CH34Pin2, LOW);
       Serial.println("Recordings on channel 3/4 done.");
       iteration++;
       delay(1000);
     case 2:
-      digitalWrite(CH56Pin, HIGH);
+      digitalWrite(CH56Pin, HIGH);  // Switch the relay for channel 5 and 6
+      digitalWrite(CH56Pin2, HIGH);
       delay(50);
       recordSine();
       delay(1000);
@@ -148,15 +192,27 @@ void loop() {
       delay(1000);
       recordSineSweep();
       delay(1000);
-      //recordMLS();
+      //recordMLS(); // Not functional :(
       delay(1000);
-      digitalWrite(CH56Pin, LOW);
+      digitalWrite(CH56Pin, LOW);  // Switch the relay for channel 5 and 6
+      digitalWrite(CH56Pin2, LOW);
       Serial.println("Recordings on channel 5/6 done.");
       iteration++;
       delay(1000);
     case 3:
-      Serial.println("All recordings done. Halting.");
-      Serial.println(AudioProcessorUsageMax());
+      Serial.println("All recordings done. Beginning FFT and IR computations.");
+      File root = SD.open("/");
+      while (true) {  // Flips through all files on the SD card
+        File entry = root.openNextFile();
+        if (!entry) break;
+        String name = entry.name();
+        entry.close();
+        // Process only CSVs matching the sample name
+        if (name.endsWith("SAMPLENAMECH12.csv") || name.endsWith("SAMPLENAMECH34.csv") || name.endsWith("SAMPLENAMECH56.csv")) {  // Remember to set SAMPLENAME to match sample across all functions
+          computeImpulseResponse(name.c_str());
+        }
+      }
+      Serial.println("All files processed.");
       while (true)
         ;
   }
@@ -171,11 +227,11 @@ void recordSine() {
     sineWave.frequency(octaveFrequency(f));  // Sets the current frequency
     char filenameCombined[45];
     if (iteration == 0) {
-      snprintf(filenameCombined, sizeof(filenameCombined), "sine%dGreyFeltCH12.csv", octaveFrequency(f));
+      snprintf(filenameCombined, sizeof(filenameCombined), "sine%dSAMPLENAMECH12.csv", octaveFrequency(f));
     } else if (iteration == 1) {
-      snprintf(filenameCombined, sizeof(filenameCombined), "sine%dGreyFeltCH34.csv", octaveFrequency(f));
+      snprintf(filenameCombined, sizeof(filenameCombined), "sine%dSAMPLENAMECH34.csv", octaveFrequency(f));
     } else if (iteration == 2) {
-      snprintf(filenameCombined, sizeof(filenameCombined), "sine%dGreyFeltCH56.csv", octaveFrequency(f));
+      snprintf(filenameCombined, sizeof(filenameCombined), "sine%dSAMPLENAMECH56.csv", octaveFrequency(f));
     } else {
       Serial.println("Unknown iteration number - Shutting down!");
       while (true)
@@ -188,8 +244,8 @@ void recordSine() {
       Serial.println("Failed to open file.");
       return;  // Exit the function or handle the error
     }
-    recordThreeToFileSingleFile(combinedFile, SAMPLE_RATE);  // Saves the current audio to SD
-    combinedFile.close();                                    // Closes the file on SD
+    recordThreeToFileSingleFile(combinedFile, sampleRate);  // Saves the current audio to SD
+    combinedFile.close();                                   // Closes the file on SD
   }
   sineWave.amplitude(0);  // Turns off the sinusoid
   Serial.println("Sine done");
@@ -197,17 +253,17 @@ void recordSine() {
 
 void recordPhaseShift() {
   Serial.println("Recording phase shift at 1kHz");
-  sineWave.amplitude(1);                          // Sets the gain/amplitude of the sinusoid
+  sineWave.amplitude(1);                            // Sets the gain/amplitude of the sinusoid
   sineWave.frequency(1000);                         // Sets the frequency
   for (int phase = 0; phase <= 360; phase += 90) {  // Increments phase shift by 90 degrees
     sineWave.phase(0);                              // Initializes phase at 0 degrees
     char filenameCombined[45];
     if (iteration == 0) {
-      snprintf(filenameCombined, sizeof(filenameCombined), "sineShifted%dGreyFeltCH12.csv", phase);
+      snprintf(filenameCombined, sizeof(filenameCombined), "sineShifted%dSAMPLENAMECH12.csv", phase);
     } else if (iteration == 1) {
-      snprintf(filenameCombined, sizeof(filenameCombined), "sineShifted%dGreyFeltCH34.csv", phase);
+      snprintf(filenameCombined, sizeof(filenameCombined), "sineShifted%dSAMPLENAMECH34.csv", phase);
     } else if (iteration == 2) {
-      snprintf(filenameCombined, sizeof(filenameCombined), "sineShifted%dGreyFeltCH56.csv", phase);
+      snprintf(filenameCombined, sizeof(filenameCombined), "sineShifted%dSAMPLENAMECH56.csv", phase);
     } else {
       Serial.println("Unknown iteration number - Shutting down!");
       while (true)
@@ -220,8 +276,8 @@ void recordPhaseShift() {
       Serial.println("Failed to open file.");
       return;  // Exit the function or handle the error
     }
-    recordThreeToFileSingleFile(combinedFile, SAMPLE_RATE);  // Saves the current audio to SD
-    combinedFile.close();                                    // Closes the file on SD
+    recordThreeToFileSingleFile(combinedFile, sampleRate);  // Saves the current audio to SD
+    combinedFile.close();                                   // Closes the file on SD
   }
   sineWave.amplitude(0);  // Turns off the sinusoid
   Serial.println("Phaseshift done");
@@ -231,14 +287,14 @@ void recordWhiteNoise() {
   Serial.println("Recording white noise");
   whiteNoise.amplitude(1);  // Sets the amplitude for white noise signal
   if (iteration == 0) {
-    removeIfExists("whiteNoiseGreyFeltCH12.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
-    combinedFile = SD.open("whiteNoiseGreyFeltCH12.csv", FILE_WRITE);  // Creates file on the SD
+    removeIfExists("whiteNoiseSAMPLENAMECH12.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+    combinedFile = SD.open("whiteNoiseSAMPLENAMECH12.csv", FILE_WRITE);  // Creates file on the SD
   } else if (iteration == 1) {
-    removeIfExists("whiteNoiseGreyFeltCH34.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
-    combinedFile = SD.open("whiteNoiseGreyFeltCH34.csv", FILE_WRITE);  // Creates file on the SD
+    removeIfExists("whiteNoiseSAMPLENAMECH34.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+    combinedFile = SD.open("whiteNoiseSAMPLENAMECH34.csv", FILE_WRITE);  // Creates file on the SD
   } else if (iteration == 2) {
-    removeIfExists("whiteNoiseGreyFeltCH56.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
-    combinedFile = SD.open("whiteNoiseGreyFeltCH56.csv", FILE_WRITE);  // Creates file on the SD
+    removeIfExists("whiteNoiseSAMPLENAMECH56.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+    combinedFile = SD.open("whiteNoiseSAMPLENAMECH56.csv", FILE_WRITE);  // Creates file on the SD
   } else {
     Serial.println("Unknown iteration number - Shutting down!");
     while (true)
@@ -248,9 +304,9 @@ void recordWhiteNoise() {
     Serial.println("Failed to open file.");
     return;  // Exit the function or handle the error
   }
-  recordThreeToFileSingleFile(combinedFile, SAMPLE_RATE);  // Saves the current audio to SD
-  combinedFile.close();                                    // Closes the file on SD
-  whiteNoise.amplitude(0);                                 // Turns off the white noise
+  recordThreeToFileSingleFile(combinedFile, sampleRate);  // Saves the current audio to SD
+  combinedFile.close();                                   // Closes the file on SD
+  whiteNoise.amplitude(0);                                // Turns off the white noise
   Serial.println("White noise done.");
 }
 
@@ -258,14 +314,14 @@ void recordSineSweep() {
   Serial.println("Recording sine sweep");
   uint32_t sweepSamples = sineSweepTime * 44100;
   if (iteration == 0) {
-  removeIfExists("sweepGreyFeltCH12.csv");  // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
-    combinedFile = SD.open("sweepGreyFeltCH12.csv", FILE_WRITE);  // Create file on SD card
+    removeIfExists("sweepSAMPLENAMECH12.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+    combinedFile = SD.open("sweepSAMPLENAMECH12.csv", FILE_WRITE);  // Create file on SD card
   } else if (iteration == 1) {
-  removeIfExists("sweepGreyFeltCH34.csv");  // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
-    combinedFile = SD.open("sweepGreyFeltCH34.csv", FILE_WRITE);  // Create file on SD card
+    removeIfExists("sweepSAMPLENAMECH34.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+    combinedFile = SD.open("sweepSAMPLENAMECH34.csv", FILE_WRITE);  // Create file on SD card
   } else if (iteration == 2) {
-  removeIfExists("sweepGreyFeltCH56.csv");  // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
-    combinedFile = SD.open("sweepGreyFeltCH56.csv", FILE_WRITE);  // Create file on SD card
+    removeIfExists("sweepSAMPLENAMECH56.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+    combinedFile = SD.open("sweepSAMPLENAMECH56.csv", FILE_WRITE);  // Create file on SD card
   } else {
     Serial.println("Unknown iteration number - Shutting down!");
     while (true)
@@ -281,75 +337,14 @@ void recordSineSweep() {
   Serial.println("Sine sweep done.");
 }
 
-void recordBothToFile(File& mixerFile, File& micFile, uint32_t totalSamples) {  // Doesn't work as well as expected
-  uint32_t samplesRecorded = 0;
-  while (samplesRecorded < totalSamples) {
-    bool wroteBlock = false;
-
-    // Mixer
-    if (recordQueue.available()) {
-      int16_t* buf = recordQueue.readBuffer();
-      for (int i = 0; i < BLOCK_SIZE; i++) {
-        float s = (float)buf[i] / 32768.0f;
-        mixerFile.print(s, 6);
-        mixerFile.print(i < BLOCK_SIZE - 1 ? "," : "\n");
-      }
-      recordQueue.freeBuffer();
-      wroteBlock = true;
-    }
-
-    // Mic
-    if (mic1Queue.available()) {
-      int16_t* buf = mic1Queue.readBuffer();
-      for (int i = 0; i < BLOCK_SIZE; i++) {
-        float s = (float)buf[i] / 32768.0f;
-        micFile.print(s, 6);
-        micFile.print(i < BLOCK_SIZE - 1 ? "," : "\n");
-      }
-      mic1Queue.freeBuffer();
-      wroteBlock = true;
-    }
-
-    if (wroteBlock) {
-      samplesRecorded += BLOCK_SIZE;
-    }
-  }
-}
-
-void recordBothToFileSingleFile(File& file, uint32_t totalSamples) {  // Works much better
-  uint32_t samplesRecorded = 0;
-
-  while (samplesRecorded < totalSamples) {
-    if (recordQueue.available() && mic1Queue.available()) {
-      int16_t* bufMixer = recordQueue.readBuffer();
-      int16_t* bufMic = mic1Queue.readBuffer();
-
-      for (int i = 0; i < BLOCK_SIZE; i++) {
-        float sMixer = (float)bufMixer[i] / 32768.0f;
-        float sMic = (float)bufMic[i] / 32768.0f;
-        file.print(sMixer, 6);
-        file.print(",");
-        file.print(sMic, 6);
-        file.print("\n");
-      }
-
-      recordQueue.freeBuffer();
-      mic1Queue.freeBuffer();
-      samplesRecorded += BLOCK_SIZE;
-    }
-  }
-}
-
-void recordThreeToFileSingleFile(File& file, uint32_t totalSamples) {  // Works much better
+void recordThreeToFileSingleFile(File& file, uint32_t totalSamples) {  // Records three audioqueues to a .csv file
   uint32_t samplesRecorded = 0;                                        // Checker for when to stop
-
   while (samplesRecorded < totalSamples) {
     if (recordQueue.available() && mic1Queue.available() && mic2Queue.available()) {  // Checks for data on all signal lines, ensuring that data is present on all lines simultaneously
       int16_t* bufMixer = recordQueue.readBuffer();
       int16_t* bufMic1 = mic1Queue.readBuffer();
       int16_t* bufMic2 = mic2Queue.readBuffer();
-
-      for (int i = 0; i < BLOCK_SIZE; i++) {  // Divides signals into blocks to ensure no overflow is happening
+      for (int i = 0; i < blockSize; i++) {  // Divides signals into blocks to ensure no overflow is happening
         float sMixer = (float)bufMixer[i] / 32768.0f;
         float sMic1 = (float)bufMic1[i] / 32768.0f;
         float sMic2 = (float)bufMic2[i] / 32768.0f;
@@ -360,16 +355,15 @@ void recordThreeToFileSingleFile(File& file, uint32_t totalSamples) {  // Works 
         file.print(sMic2, 6);   // Saves mic2 signal to SD card
         file.print("\n");
       }
-
-      recordQueue.freeBuffer();       // Frees buffer
-      mic1Queue.freeBuffer();         // Frees buffer
-      mic2Queue.freeBuffer();         // Frees buffer
-      samplesRecorded += BLOCK_SIZE;  // Keeps track of how many samples has been saved
+      recordQueue.freeBuffer();      // Frees buffer
+      mic1Queue.freeBuffer();        // Frees buffer
+      mic2Queue.freeBuffer();        // Frees buffer
+      samplesRecorded += blockSize;  // Keeps track of how many samples has been saved
     }
   }
 }
 
-void removeIfExists(const char* filename) {
+void removeIfExists(const char* filename) { // Function to remove files, ensuring that new measurements are not just appended to previous
   if (SD.exists(filename)) {
     SD.remove(filename);
     Serial.print("Deleted previous version of: ");
@@ -377,7 +371,7 @@ void removeIfExists(const char* filename) {
   }
 }
 
-uint16_t octaveFrequency(uint16_t octaveBand) {
+uint16_t octaveFrequency(uint16_t octaveBand) { // All 1/3 octave frequencies the impedance tube can measure
   switch (octaveBand) {
     case 1: return 12.5;
     case 2: return 16;
@@ -399,7 +393,7 @@ uint16_t octaveFrequency(uint16_t octaveBand) {
     case 18: return 630;
     case 19: return 800;
     case 20: return 1000;
-    case 21: return 1250;
+    case 21: return 1250; // Might have modal irregularities
     default:
       Serial.println("Unsupported bit length!");
       return 0;
@@ -450,14 +444,14 @@ void recordMLS() {
   Serial.println("Recording MLS");
   char filename[45];
   if (iteration == 0) {
-    removeIfExists("15BitMLSGreyFeltCH12.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
-    combinedFile = SD.open("15BitMLSGreyFeltCH12.csv", FILE_WRITE);  // Creates file on the SD
+    removeIfExists("15BitMLSSAMPLENAMECH12.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+    combinedFile = SD.open("15BitMLSSAMPLENAMECH12.csv", FILE_WRITE);  // Creates file on the SD
   } else if (iteration == 1) {
-    removeIfExists("15BitMLSGreyFeltCH34.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
-    combinedFile = SD.open("15BitMLSGreyFeltCH34.csv", FILE_WRITE);  // Creates file on the SD
+    removeIfExists("15BitMLSSAMPLENAMECH34.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+    combinedFile = SD.open("15BitMLSSAMPLENAMECH34.csv", FILE_WRITE);  // Creates file on the SD
   } else if (iteration == 2) {
-    removeIfExists("15BitMLSGreyFeltCH56.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
-    combinedFile = SD.open("15BitMLSGreyFeltCH56.csv", FILE_WRITE);  // Creates file on the SD
+    removeIfExists("15BitMLSSAMPLENAMECH56.csv");                      // Deletes previous versions of the file, so that a new file is created, ensuring data integrity
+    combinedFile = SD.open("15BitMLSSAMPLENAMECH56.csv", FILE_WRITE);  // Creates file on the SD
   } else {
     Serial.println("Unknown iteration number - Shutting down!");
     while (true)
@@ -467,9 +461,9 @@ void recordMLS() {
     Serial.println("Failed to open file.");
     return;  // Exit the function or handle the error
   }
-  generateMLS();  // Sets the amplitude for white noise signal
-  recordThreeToFileSingleFile(combinedFile, SAMPLE_RATE);  // Saves the current audio to SD
-  combinedFile.close();                                    // Closes the file on SD
+  generateMLS();                                          // Sets the amplitude for white noise signal
+  recordThreeToFileSingleFile(combinedFile, sampleRate);  // Saves the current audio to SD
+  combinedFile.close();                                   // Closes the file on SD
   Serial.println("MLS done.");
 }
 
@@ -505,7 +499,7 @@ void generateMLS() {
   Serial.print("The MLS should be ");
   Serial.print((1UL << LFSRBits) - 1);
   Serial.println(" bits long.");
-  uint32_t startMLSTime = micros();
+  uint32_t startMLSTime = micros(); // Timer for MLS generation
   uint32_t MLSLength = (1UL << LFSRBits) - 1;
   uint32_t increment = 1048576;
   for (uint32_t start = 0; start < MLSLength; start += increment) {
@@ -531,4 +525,166 @@ void generateMLS() {
   Serial.print("It has taken ");
   Serial.print(endMLSTime - startMLSTime);  // Total execution time given in serial monitor
   Serial.println(" microseconds to calculate and print.");
+}
+
+// Compute and save impulse responses for two mics from a given CSV
+void computeImpulseResponse(const char* inputFilename) {
+  Serial.printf("\n--- Processing %s ---\n", inputFilename);
+  File infile = SD.open(inputFilename);
+  if (!infile) {
+    Serial.println("Failed to open input file!");
+    return;
+  }
+
+  const size_t max_samples = 32768;
+  float* x = (float*)extmem_malloc(max_samples * sizeof(float));   // mixer
+  float* y1 = (float*)extmem_malloc(max_samples * sizeof(float));  // mic1
+  float* y2 = (float*)extmem_malloc(max_samples * sizeof(float));  // mic2
+  if (!x || !y1 || !y2) {
+    Serial.println("Memory allocation failed for input arrays");
+    return;
+  }
+
+  // Read CSV: mixer, mic1, mic2
+  size_t N = 0;
+  while (infile.available() && N < max_samples) {
+    String line = infile.readStringUntil('\n');
+    int idx1 = line.indexOf(',');
+    int idx2 = line.indexOf(',', idx1 + 1);
+    if (idx1 > 0 && idx2 > idx1) {
+      x[N] = line.substring(0, idx1).toFloat();
+      y1[N] = line.substring(idx1 + 1, idx2).toFloat();
+      y2[N] = line.substring(idx2 + 1).toFloat();
+      N++;
+    }
+  }
+  infile.close();
+  Serial.printf("Loaded %zu samples from %s\n", N, inputFilename);
+
+  // FFT length = next power of two of 2*N
+  size_t Nfft = next_power_of_2(2 * N);
+  Serial.printf("FFT length: %zu\n", Nfft);
+
+  // Allocate FFT buffers
+  kiss_fft_cpx* X = (kiss_fft_cpx*)extmem_malloc(Nfft * sizeof(kiss_fft_cpx));
+  kiss_fft_cpx* Y1 = (kiss_fft_cpx*)extmem_malloc(Nfft * sizeof(kiss_fft_cpx));
+  kiss_fft_cpx* Y2 = (kiss_fft_cpx*)extmem_malloc(Nfft * sizeof(kiss_fft_cpx));
+  kiss_fft_cpx* H1 = (kiss_fft_cpx*)extmem_malloc(Nfft * sizeof(kiss_fft_cpx));
+  kiss_fft_cpx* H2 = (kiss_fft_cpx*)extmem_malloc(Nfft * sizeof(kiss_fft_cpx));
+  kiss_fft_cpx* H1c = (kiss_fft_cpx*)extmem_malloc(Nfft * sizeof(kiss_fft_cpx));
+  kiss_fft_cpx* H2c = (kiss_fft_cpx*)extmem_malloc(Nfft * sizeof(kiss_fft_cpx));
+  kiss_fft_cpx* h1t = (kiss_fft_cpx*)extmem_malloc(Nfft * sizeof(kiss_fft_cpx));
+  kiss_fft_cpx* h2t = (kiss_fft_cpx*)extmem_malloc(Nfft * sizeof(kiss_fft_cpx));
+  if (!X || !Y1 || !Y2 || !H1 || !H2 || !H1c || !H2c || !h1t || !h2t) {
+    Serial.println("Memory allocation failed for FFT buffers");
+    return;
+  }
+
+  // Zero-pad inputs
+  for (size_t i = 0; i < Nfft; i++) {
+    X[i].r = (i < N ? x[i] : 0.0f);
+    X[i].i = 0.0f;
+    Y1[i].r = (i < N ? y1[i] : 0.0f);
+    Y1[i].i = 0.0f;
+    Y2[i].r = (i < N ? y2[i] : 0.0f);
+    Y2[i].i = 0.0f;
+  }
+
+  // Create FFT configs
+  kiss_fft_cfg fwd = kiss_fft_alloc_psram(Nfft, 0);
+  kiss_fft_cfg inv = kiss_fft_alloc_psram(Nfft, 1);
+  if (!fwd || !inv) {
+    Serial.println("KissFFT config alloc failed");
+    return;
+  }
+
+  // Forward FFTs
+  kiss_fft_psram(fwd, X, X);
+  kiss_fft_psram(fwd, Y1, Y1);
+  kiss_fft_psram(fwd, Y2, Y2);
+  Serial.println("FFTs Done");
+
+  // Frequency response: H1 = Y1/X, H2 = Y2/X
+  for (size_t i = 0; i < Nfft; i++) {
+    float xr = X[i].r, xi = X[i].i;
+    float denom = xr * xr + xi * xi + epsilon;
+    // mic1
+    {
+      float yr = Y1[i].r, yi = Y1[i].i;
+      H1[i].r = (yr * xr + yi * xi) / denom;
+      H1[i].i = (yi * xr - yr * xi) / denom;
+    }
+    // mic2
+    {
+      float yr = Y2[i].r, yi = Y2[i].i;
+      H2[i].r = (yr * xr + yi * xi) / denom;
+      H2[i].i = (yi * xr - yr * xi) / denom;
+    }
+  }
+
+  // Copy for output
+  memcpy(H1c, H1, Nfft * sizeof(kiss_fft_cpx));
+  memcpy(H2c, H2, Nfft * sizeof(kiss_fft_cpx));
+
+  // Inverse FFT to get impulse responses
+  kiss_fft(inv, H1, h1t);
+  kiss_fft(inv, H2, h2t);
+  // Normalize
+  for (size_t i = 0; i < Nfft; i++) {
+    h1t[i].r /= (float)Nfft;
+    h2t[i].r /= (float)Nfft;
+  }
+  Serial.println("IFFTs Done");
+
+  // Write CSV
+  String outName = String(inputFilename);
+  outName.replace(".csv", "IRAndFFT.csv");
+  removeIfExists(outName.c_str());
+  File out = SD.open(outName.c_str(), FILE_WRITE);
+  out.println("FreqHz,Xreal,Ximag,Y1real,Y1imag,H1real,H1imag,H1magdB,H1phaserad,h1Impulse,Y2real,Y2imag,H2real,H2imag,H2magdB,H2phaserad,h2Impulse");
+
+  float freqRes = (float)sampleRate / Nfft;
+  size_t Nu = Nfft / 2 + 1;
+  for (size_t i = 0; i < Nu; i++) {
+    float freq = i * freqRes;
+    float xr = X[i].r, xi = X[i].i;
+    // mic1
+    float y1r = Y1[i].r, y1i = Y1[i].i;
+    float h1r = H1c[i].r, h1i = H1c[i].i;
+    float mag1 = abs(sqrtf(h1r * h1r + h1i * h1i));
+    float dB1 = 20.0f * log10f(mag1 + epsilon);
+    float ph1 = atan2f(h1i, h1r);
+    float imp1 = h1t[i].r;
+    // mic2
+    float y2r = Y2[i].r, y2i = Y2[i].i;
+    float h2r = H2c[i].r, h2i = H2c[i].i;
+    float mag2 = abs(sqrtf(h2r * h2r + h2i * h2i));
+    float dB2 = 20.0f * log10f(mag2 + epsilon);
+    float ph2 = atan2f(h2i, h2r);
+    float imp2 = h2t[i].r;
+
+    out.printf("%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
+               freq, xr, xi,
+               y1r, y1i, h1r, h1i, dB1, ph1, imp1,
+               y2r, y2i, h2r, h2i, dB2, ph2, imp2);
+  }
+  out.close();
+  Serial.printf("Output written to %s\n", outName.c_str());
+
+  // Cleanup
+  extmem_free(x);
+  extmem_free(y1);
+  extmem_free(y2);
+  extmem_free(X);
+  extmem_free(Y1);
+  extmem_free(Y2);
+  extmem_free(H1);
+  extmem_free(H2);
+  extmem_free(H1c);
+  extmem_free(H2c);
+  extmem_free(h1t);
+  extmem_free(h2t);
+  extmem_free(fwd);
+  extmem_free(inv);
+  Serial.println("Cleanup Done!");
 }

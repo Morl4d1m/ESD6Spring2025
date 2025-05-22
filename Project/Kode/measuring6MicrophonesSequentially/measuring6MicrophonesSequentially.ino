@@ -6,6 +6,9 @@
 #define CH12Pin 30
 #define CH34Pin 31
 #define CH56Pin 32
+#define CH12Pin2 35
+#define CH34Pin2 34
+#define CH56Pin2 33
 
 AudioInputI2S2 i2sMic1;
 //AudioInputI2S2 i2sMic2;
@@ -24,12 +27,18 @@ void setup() {
   pinMode(CH12Pin, OUTPUT);
   pinMode(CH34Pin, OUTPUT);
   pinMode(CH56Pin, OUTPUT);
+  pinMode(CH12Pin2, OUTPUT);
+  pinMode(CH34Pin2, OUTPUT);
+  pinMode(CH56Pin2, OUTPUT);
   fft10241.windowFunction(AudioWindowRectangular1024);
   fft10242.windowFunction(AudioWindowRectangular1024);
   Serial.println("Setup done");
   digitalWrite(CH12Pin, LOW);
   digitalWrite(CH34Pin, LOW);
   digitalWrite(CH56Pin, LOW);
+  digitalWrite(CH12Pin2, LOW);
+  digitalWrite(CH34Pin2, LOW);
+  digitalWrite(CH56Pin2, LOW);
 }
 
 void loop() {
@@ -37,6 +46,7 @@ void loop() {
   //Serial.println(loopNumber);
   delay(1000);
   digitalWrite(CH12Pin, HIGH);
+  digitalWrite(CH12Pin2, HIGH);
   delay(50);
   for (int i = 0; i < 1000000000; i++) {
     if (fft10241.available()) {
@@ -73,8 +83,10 @@ void loop() {
     }
   }
   digitalWrite(CH12Pin, LOW);
+  digitalWrite(CH12Pin2, LOW);
   delay(1000);
   digitalWrite(CH34Pin, HIGH);
+  digitalWrite(CH34Pin2, HIGH);
   delay(50);
   for (int i = 0; i < 1000000000; i++) {
     if (fft10241.available()) {
@@ -111,8 +123,10 @@ void loop() {
     }
   }
   digitalWrite(CH34Pin, LOW);
+  digitalWrite(CH34Pin2, LOW);
   delay(1000);
   digitalWrite(CH56Pin, HIGH);
+  digitalWrite(CH56Pin2, HIGH);
   delay(50);
   for (int i = 0; i < 1000000000; i++) {
     if (fft10241.available()) {
@@ -149,6 +163,7 @@ void loop() {
     }
   }
   digitalWrite(CH56Pin, LOW);
+  digitalWrite(CH56Pin2, LOW);
   delay(1000);
   //delay(10);
   //loopNumber++;

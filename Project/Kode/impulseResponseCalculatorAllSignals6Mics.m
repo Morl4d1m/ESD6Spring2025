@@ -1,6 +1,6 @@
-%clc;
-%clear;
-%close all;
+clc;
+clear;
+close all;
 
 % === User parameters ===
 fs = 44100;  % Sampling rate (Hz)
@@ -9,7 +9,8 @@ output_dir = "E:\";
 % === Signal file paths ===
 file_paths = {
     'sweepEggShellFoamCH12.csv', ...
-    'sine500EggShellFoamCH12.csv', ...
+    %{
+'sine500EggShellFoamCH12.csv', ...
     'whiteNoiseEggShellFoamCH12.csv', ...
     'sineShifted180EggShellFoamCH12.csv', ... 
     'sweepEggShellFoamCH34.csv', ...
@@ -20,6 +21,7 @@ file_paths = {
     'sine500EggShellFoamCH56.csv', ...
     'whiteNoiseEggShellFoamCH56.csv', ...
     'sineShifted180EggShellFoamCH56.csv'
+    %}
     
     %'fullSweepCombined2Mics.csv'
 };
@@ -45,7 +47,7 @@ for i = 1:length(file_paths)
     fprintf("Duration mic2: %.2f seconds\n", durationz);
 
     % === Ensure same length ===
-    N = min(min(length(x), length(y)), length(z));
+    N = 32768;%min(min(length(x), length(y)), length(z));
     x = x(1:N);
     y = y(1:N);
     z = z(1:N);

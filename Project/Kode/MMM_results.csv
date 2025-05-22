@@ -1,0 +1,2 @@
+Frequency_Hz,ReflectionReal,ReflectionImag,AbsorptionCoeff,ImpedanceReal_Pa_s_per_m,ImpedanceImag_Pa_s_per_m,AdmittanceReal_m_per_Pa_s,AdmittanceImag_m_per_Pa_s
+1000,0.258119751987793,-1.05391000872869,-0.177352112864756,-44.3115337324916,-526.640118896182,-0.000158644538131395,0.00188548153011651
