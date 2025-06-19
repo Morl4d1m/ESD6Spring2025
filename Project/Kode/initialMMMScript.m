@@ -3,7 +3,7 @@
 clear; clc; close all;
 
 %% User Inputs
-input_csv = 'C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\acceptanceTest\eggShellFoamTest2\sine1250EggShellFoamCH12IRAndFFT.csv'; 
+input_csv = 'E:\whitenoiseSAMPLENAMECH12IRAndFFT.csv'; 
 
 % Physical parameters
 c0 = 343;            % Speed of sound [m/s]
@@ -36,7 +36,7 @@ k0 = k0_prime - 1i .* k0_doubleprime;
 %% Calculate Transfer functions
 H12_uncorrected = Hs2 ./ Hs1;
 Hc = sqrt(H1_complex .* H2_complex);
-H12 = H12_uncorrected;% ./ Hc;
+H12 = H12_uncorrected ./ Hc;
 
 HI = exp(-1i .* k0 .* s);
 HR = exp(1i .* k0 .* s);
@@ -59,8 +59,8 @@ G_ratio = 1 ./ Z_ratio;
 G = G_ratio ./ (rho0 .* c0);
 
 %% Define standard 1/3 octave center frequencies
-third_oct_freqs = [100,125,160,200,250,315,400,500,630,800,1000,...
-    1250,1600,2000,2500,3150,4000,5000,6300,8000];
+third_oct_freqs = [10,12.5,16,20,25,31.5,40,50,63,80,100,125,160,200,250,315,400,500,630,800,1000,...
+    1250,1600];
 
 % Find indices closest to 1/3 octave frequencies
 [~, idx_third_oct] = arrayfun(@(x) min(abs(freq - x)), third_oct_freqs);

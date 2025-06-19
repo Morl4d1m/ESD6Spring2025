@@ -46,7 +46,7 @@ void deleteRecursive(File dir) {
     } else {
       // Check if the file ends with "IRAndFFT.csv"
       String fileName = entry.name();
-      if (fileName.endsWith("IRAndFFT.csv")) {
+      if (fileName.endsWith(".csv")) {
         SD.remove(entry.name());  // Delete the matching file
         Serial.print("Deleted file: ");
         Serial.println(entry.name());

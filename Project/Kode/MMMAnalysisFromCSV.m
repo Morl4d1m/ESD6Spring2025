@@ -4,7 +4,7 @@
 %              Y2real,Y2imag,H2real,H2imag,H2magdB,H2phaserad,hs2
 
 % USER INPUTS: -------------------------------------------------------------
-csvFile = 'C:\Users\Christian Lykke\Documents\Skole\Aalborg Universitet\ESD6\Project\Kode\acceptanceTest\eggShellFoamTest1\IRAndFFT\sweepEggShellFoamCH56IRAndFFT';  % your CSV file
+csvFile = 'E:\sine1000SAMPLENAMECH12IRAndFFT.csv';  % your CSV file
 
 fs      = 44100;      % Hz
 c0      = 343;        % m/s

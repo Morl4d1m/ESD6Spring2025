@@ -59,7 +59,7 @@ for i = 1:length(file_paths)
 
     % === Plot Impulse Response ===
     figure;
-    %subplot(2, 1, 1);
+    %   subplot(2, 1, 1);
     %plot(t, h, 'k');
     %xlabel('Time (s)');
     %ylabel('Amplitude');

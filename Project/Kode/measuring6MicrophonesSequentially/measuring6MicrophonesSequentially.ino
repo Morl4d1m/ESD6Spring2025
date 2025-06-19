@@ -12,11 +12,19 @@
 
 AudioInputI2S2 i2sMic1;
 //AudioInputI2S2 i2sMic2;
-AudioAnalyzeFFT1024 fft10241;
+/*AudioAnalyzeFFT1024 fft10241;
 AudioConnection patchCord1(i2sMic1, 0, fft10241, 0);  // 1 taller afgør om den modtager på L eller R. Sæt til 0 for L og 1 for R, og husk at sætte microphonen til hhv GND og VDD
 
 AudioAnalyzeFFT1024 fft10242;
 AudioConnection patchCord2(i2sMic1, 1, fft10242, 0);  // 1 taller afgør om den modtager på L eller R. Sæt til 0 for L og 1 for R, og husk at sætte microphonen til hhv GND og VDD
+*/
+
+AudioRecordQueue  queue1;
+AudioRecordQueue  queue2;
+
+AudioConnection   patchCord3(i2sMic1, 0, queue1, 0);
+AudioConnection   patchCord4(i2sMic1, 1, queue2, 0);
+
 
 const float binWidth = 20;//44100.0 / 1024.0;  // ≈ 43.07 Hz bandwidth of bins
 int loopNumber = 1;
@@ -24,14 +32,16 @@ int loopNumber = 1;
 void setup() {
   Serial.begin(115200);
   AudioMemory(1000);
+  queue1.begin();
+  queue2.begin();
   pinMode(CH12Pin, OUTPUT);
   pinMode(CH34Pin, OUTPUT);
   pinMode(CH56Pin, OUTPUT);
   pinMode(CH12Pin2, OUTPUT);
   pinMode(CH34Pin2, OUTPUT);
   pinMode(CH56Pin2, OUTPUT);
-  fft10241.windowFunction(AudioWindowRectangular1024);
-  fft10242.windowFunction(AudioWindowRectangular1024);
+  //fft10241.windowFunction(AudioWindowRectangular1024);
+  //fft10242.windowFunction(AudioWindowRectangular1024);
   Serial.println("Setup done");
   digitalWrite(CH12Pin, LOW);
   digitalWrite(CH34Pin, LOW);
@@ -49,7 +59,15 @@ void loop() {
   digitalWrite(CH12Pin2, HIGH);
   delay(50);
   for (int i = 0; i < 1000000000; i++) {
-    if (fft10241.available()) {
+  if (queue1.available() && queue2.available()) {
+    int16_t *data1 = queue1.readBuffer();
+    int16_t *data2 = queue2.readBuffer();
+    Serial.print("CH1: "); Serial.print(data1[0]);
+    Serial.print("\tCH2: "); Serial.println(data2[0]);
+    queue1.freeBuffer();
+    queue2.freeBuffer();
+  }
+    /*if (fft10241.available()) {
       Serial.println("Channel 1:");
       for (int i = 20; i < 50; i++) {  // 465 bins go from 0-20025Hz
         float startFreq = i * binWidth;
@@ -80,7 +98,7 @@ void loop() {
         Serial.print("  ");
       }
       Serial.println();
-    }
+    }*/
   }
   digitalWrite(CH12Pin, LOW);
   digitalWrite(CH12Pin2, LOW);
@@ -89,7 +107,15 @@ void loop() {
   digitalWrite(CH34Pin2, HIGH);
   delay(50);
   for (int i = 0; i < 1000000000; i++) {
-    if (fft10241.available()) {
+  if (queue1.available() && queue2.available()) {
+    int16_t *data1 = queue1.readBuffer();
+    int16_t *data2 = queue2.readBuffer();
+    Serial.print("CH3: "); Serial.print(data1[0]);
+    Serial.print("\tCH4: "); Serial.println(data2[0]);
+    queue1.freeBuffer();
+    queue2.freeBuffer();
+  }
+    /*if (fft10241.available()) {
       Serial.println("Channel 3:");
       for (int i = 20; i < 50; i++) {  // 465 bins go from 0-20025Hz
         float startFreq = i * binWidth;
@@ -120,7 +146,7 @@ void loop() {
         Serial.print("  ");
       }
       Serial.println();
-    }
+    }*/
   }
   digitalWrite(CH34Pin, LOW);
   digitalWrite(CH34Pin2, LOW);
@@ -129,7 +155,15 @@ void loop() {
   digitalWrite(CH56Pin2, HIGH);
   delay(50);
   for (int i = 0; i < 1000000000; i++) {
-    if (fft10241.available()) {
+  if (queue1.available() && queue2.available()) {
+    int16_t *data1 = queue1.readBuffer();
+    int16_t *data2 = queue2.readBuffer();
+    Serial.print("CH5: "); Serial.print(data1[0]);
+    Serial.print("\tCH6: "); Serial.println(data2[0]);
+    queue1.freeBuffer();
+    queue2.freeBuffer();
+  }
+    /*if (fft10241.available()) {
       Serial.println("Channel 5:");
       for (int i = 20; i < 50; i++) {  // 465 bins go from 0-20025Hz
         float startFreq = i * binWidth;
@@ -160,7 +194,7 @@ void loop() {
         Serial.print("  ");
       }
       Serial.println();
-    }
+    }*/
   }
   digitalWrite(CH56Pin, LOW);
   digitalWrite(CH56Pin2, LOW);

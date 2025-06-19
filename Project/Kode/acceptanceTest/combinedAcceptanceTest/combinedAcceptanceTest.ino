@@ -46,7 +46,7 @@ size_t next_power_of_2(size_t n) {
 
 // General audio preparation
 AudioOutputI2S i2s1;
-AudioInputI2S i2sMic1;
+AudioInputI2S2 i2sMic1;
 AudioControlSGTL5000 sgtl5000_1;
 
 // Mixer to enable all signals being "active" at once.
@@ -103,6 +103,7 @@ const float epsilon = 1e-10f;
 void setup() {
   Serial.begin(115200);
   AudioMemory(1500);  // Way too much audiomemory set aside, but currently functional
+
 
   // SD setup
   if (!SD.begin(chipSelect)) {
@@ -362,6 +363,7 @@ void recordThreeToFileSingleFile(File& file, uint32_t totalSamples) {  // Record
     }
   }
 }
+
 
 void removeIfExists(const char* filename) { // Function to remove files, ensuring that new measurements are not just appended to previous
   if (SD.exists(filename)) {
